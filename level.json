@@ -1,20 +1,20 @@
 {
   "config": {
-    "name": "NEO-VOXEL CITY: ORGANIC",
+    "name": "LIGHT-VOXEL CITY",
     "gravity": -0.98,
     "airResistance": 0.96,
-    "bloom": 1.8
+    "bloom": 1.2
   },
   "environment": {
-    "sky": "#010409",
-    "ground": "#050505",
-    "neon": ["#38bdf8", "#f43f5e", "#fbbf24"]
+    "sky": "#e2e8f0",
+    "ground": "#cbd5e1",
+    "neon": ["#0ea5e9", "#f43f5e", "#8b5cf6"]
   },
   "buildings": [
-    { "x": 0, "z": 0, "w": 4, "d": 4, "h": 25, "color": "#38bdf8" },
-    { "x": -50, "z": -50, "w": 8, "d": 8, "h": 12, "color": "#1e293b" },
-    { "x": 50, "z": 50, "w": 8, "d": 8, "h": 12, "color": "#1e293b" },
-    { "x": 50, "z": -50, "w": 4, "d": 4, "h": 30, "color": "#f43f5e" },
-    { "x": -50, "z": 50, "w": 4, "d": 4, "h": 30, "color": "#f43f5e" }
+    { "x": 0, "z": 0, "w": 4, "d": 4, "h": 25, "color": "#f8fafc" },
+    { "x": -50, "z": -50, "w": 8, "d": 8, "h": 12, "color": "#94a3b8" },
+    { "x": 50, "z": 50, "w": 8, "d": 8, "h": 12, "color": "#94a3b8" },
+    { "x": 50, "z": -50, "w": 4, "d": 4, "h": 30, "color": "#64748b" },
+    { "x": -50, "z": 50, "w": 4, "d": 4, "h": 30, "color": "#64748b" }
   ]
 }
