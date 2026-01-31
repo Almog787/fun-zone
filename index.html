@@ -2,39 +2,41 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>VOXEL COMMANDER PRO - Cinematic Edition</title>
+    <title>VOXEL WARFARE - INFINITE MAP</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0f172a; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; overflow: hidden; background: #020617; font-family: 'Segoe UI', sans-serif; }
         #ui {
             position: absolute; top: 20px; left: 20px; color: #38bdf8;
-            pointer-events: none; z-index: 10; background: rgba(15, 23, 42, 0.8);
+            pointer-events: none; z-index: 10; background: rgba(15, 23, 42, 0.9);
             padding: 20px; border-radius: 15px; border: 1px solid #1e293b;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        /* כפתורי מצלמה */
         #controls {
             position: absolute; bottom: 30px; left: 30px; display: grid;
-            grid-template-columns: 50px 50px 50px; gap: 10px; z-index: 100;
+            grid-template-columns: 60px 60px 60px; gap: 10px; z-index: 100;
         }
         .btn {
-            width: 50px; height: 50px; background: #1e293b; color: #38bdf8;
+            width: 60px; height: 60px; background: #1e293b; color: #38bdf8;
             border: 1px solid #38bdf8; border-radius: 10px; cursor: pointer;
             display: flex; justify-content: center; align-items: center; font-weight: bold;
-            user-select: none; transition: 0.2s;
+            font-size: 20px; user-select: none; transition: 0.2s;
         }
-        .btn:active { background: #38bdf8; color: #1e293b; }
+        .btn:active { background: #38bdf8; color: #1e293b; transform: scale(0.95); }
         .btn-audio {
-            position: absolute; top: 20px; right: 20px; background: #ef4444;
-            color: white; border: none; padding: 12px 24px; cursor: pointer;
-            border-radius: 8px; font-weight: bold; z-index: 100;
+            position: absolute; top: 20px; right: 20px; background: #0ea5e9;
+            color: white; border: none; padding: 15px 30px; cursor: pointer;
+            border-radius: 50px; font-weight: bold; z-index: 100; box-shadow: 0 0 20px #0ea5e9;
+            animation: pulse 2s infinite;
         }
-        #instructions { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #94a3b8; pointer-events: none; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(14, 165, 233, 0); } 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); } }
+        #instructions { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #64748b; pointer-events: none; text-shadow: 0 2px 4px black; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <h1 style="margin:0; font-size: 24px;">VOXEL COMMANDER PRO</h1>
-        <div id="status">מערכת נשק: מוכנה | סוללה: מלאה</div>
+        <h1 style="margin:0; font-size: 22px; letter-spacing: 1px;">VOXEL WARFARE: INFINITE</h1>
+        <div id="status">> מפה: ענקית | התחדשות מבנים: פעילה</div>
     </div>
 
     <div id="controls">
@@ -44,14 +46,14 @@
         <div class="btn" onmousedown="moveCam('right')">▶</div>
     </div>
 
-    <div id="instructions">לחץ על בניין לירי | השתמש בחצים לניווט</div>
-    <button class="btn-audio" id="audioBtn" onclick="initAudio()">הפעל מערכות סאונד</button>
+    <div id="instructions">השתמש בחצים כדי לסייר במפה הענקית | לחץ לירי | מבנים יבנו את עצמם מחדש</div>
+    <button class="btn-audio" id="audioBtn" onclick="initAudio()">טען מערכות סאונד</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 
     <script>
-        /** 1. מנוע סאונד מתקדם **/
+        /** 1. מנוע סאונד **/
         let audioCtx = null;
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -66,25 +68,25 @@
 
             if (type === 'launch') {
                 const osc = audioCtx.createOscillator();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(200, now);
-                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
                 const g = audioCtx.createGain();
-                g.gain.setValueAtTime(0.3, now);
-                g.gain.linearRampToValueAtTime(0, now + 0.2);
+                g.gain.setValueAtTime(0.5, now);
+                g.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.connect(g); g.connect(master);
-                osc.start(); osc.stop(now + 0.2);
+                osc.start(); osc.stop(now + 0.3);
             } 
             else if (type === 'whistle') {
                 const osc = audioCtx.createOscillator();
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(300, now + 0.8);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(1000, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 1.0);
                 const g = audioCtx.createGain();
                 g.gain.setValueAtTime(0, now);
-                g.gain.linearRampToValueAtTime(0.1, now + 0.1);
-                g.gain.linearRampToValueAtTime(0, now + 0.8);
+                g.gain.linearRampToValueAtTime(0.1, now + 0.2);
+                g.gain.linearRampToValueAtTime(0, now + 1.0);
                 osc.connect(g); g.connect(master);
-                osc.start(); osc.stop(now + 0.8);
+                osc.start(); osc.stop(now + 1.0);
             }
             else if (type === 'explode') {
                 const noise = audioCtx.createBufferSource();
@@ -92,104 +94,192 @@
                 const d = buf.getChannelData(0);
                 for (let i = 0; i < buf.length; i++) d[i] = Math.random() * 2 - 1;
                 noise.buffer = buf;
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(1000, now);
-                filter.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+                const f = audioCtx.createBiquadFilter();
+                f.type = 'lowpass';
+                f.frequency.setValueAtTime(800, now);
+                f.frequency.exponentialRampToValueAtTime(50, now + 1);
                 const g = audioCtx.createGain();
-                g.gain.setValueAtTime(0.5, now);
-                g.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
-                noise.connect(filter); filter.connect(g); g.connect(master);
+                g.gain.setValueAtTime(0.8, now);
+                g.gain.exponentialRampToValueAtTime(0.01, now + 2);
+                noise.connect(f); f.connect(g); g.connect(master);
                 noise.start();
+            }
+            else if (type === 'rebuild') {
+                const osc = audioCtx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 1);
+                const g = audioCtx.createGain();
+                g.gain.setValueAtTime(0, now);
+                g.gain.linearRampToValueAtTime(0.1, now + 0.5);
+                g.gain.linearRampToValueAtTime(0, now + 1);
+                osc.connect(g); g.connect(master);
+                osc.start(); osc.stop(now + 1);
             }
         }
 
-        /** 2. אתחול עולם **/
+        /** 2. אתחול עולם ענק **/
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x020617);
-        scene.fog = new THREE.Fog(0x020617, 100, 600);
+        scene.fog = new THREE.Fog(0x020617, 200, 1200); // ערפל רחוק יותר למפה גדולה
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-        let camAngle = 0.5;
-        let camHeight = 80;
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+        let camAngle = 0.8;
+        let camHeight = 150;
+        let camRadius = 500;
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
         const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(100, 200, 100);
+        sun.position.set(200, 500, 200);
         scene.add(sun);
 
-        const grid = new THREE.GridHelper(1000, 60, 0x1e293b, 0x0f172a);
-        scene.add(grid);
+        // רשת ענקית
+        scene.add(new THREE.GridHelper(3000, 150, 0x1e293b, 0x0f172a));
 
-        /** 3. בניית עיר משופרת **/
+        /** 3. בניית עיר מסיבית **/
         const buildings = [];
-        const debris = [];
+        let debris = [];
         const voxelGeo = new THREE.BoxGeometry(1.9, 1.9, 1.9);
 
-        function createCity() {
-            for (let i = 0; i < 40; i++) {
-                const bx = (Math.random() - 0.5) * 250;
-                const bz = (Math.random() - 0.5) * 250;
-                const bh = Math.floor(Math.random() * 10) + 5;
-                const bw = Math.floor(Math.random() * 2) + 2;
-                
-                const group = new THREE.Group();
-                const voxels = [];
-                
-                for(let y=0; y<bh; y++) {
-                    for(let x=0; x<bw; x++) {
-                        for(let z=0; z<bw; z++) {
-                            // חלונות מוארים באקראי
-                            const isWindow = Math.random() > 0.85;
-                            const mat = new THREE.MeshStandardMaterial({ 
-                                color: isWindow ? 0xfff380 : 0x334155,
-                                emissive: isWindow ? 0xfff380 : 0x000000,
-                                emissiveIntensity: isWindow ? 1 : 0
-                            });
-                            const v = new THREE.Mesh(voxelGeo, mat);
-                            v.position.set(x*2, y*2 + 1, z*2);
-                            group.add(v);
-                            voxels.push(v);
-                        }
+        // פונקציה לבניית בניין בודד
+        function buildStructure(x, z, w, h) {
+            const group = new THREE.Group();
+            const voxels = [];
+            
+            for(let y=0; y<h; y++) {
+                for(let ix=0; ix<w; ix++) {
+                    for(let iz=0; iz<w; iz++) {
+                        const isWindow = Math.random() > 0.92;
+                        const mat = new THREE.MeshStandardMaterial({ 
+                            color: isWindow ? 0x0ea5e9 : 0x1e293b,
+                            emissive: isWindow ? 0x0ea5e9 : 0x000000,
+                            emissiveIntensity: isWindow ? 2 : 0,
+                            roughness: 0.2,
+                            metalness: 0.5
+                        });
+                        const v = new THREE.Mesh(voxelGeo, mat);
+                        v.position.set(ix*2, y*2 + 1, iz*2);
+                        group.add(v);
+                        voxels.push(v);
                     }
                 }
-                group.position.set(bx, 0, bz);
-                scene.add(group);
-                buildings.push({ group, voxels, destroyed: false });
+            }
+            group.position.set(x, 0, z);
+            scene.add(group);
+            
+            // שמירת נתונים לשיקום עתידי
+            return { 
+                group, 
+                voxels, 
+                destroyed: false, 
+                config: { x, z, w, h } 
+            };
+        }
+
+        function createCity() {
+            // יצירת 200 בניינים!
+            for (let i = 0; i < 200; i++) {
+                const bx = (Math.random() - 0.5) * 1200;
+                const bz = (Math.random() - 0.5) * 1200;
+                const bh = Math.floor(Math.random() * 15) + 5; // גובה
+                const bw = Math.floor(Math.random() * 3) + 2;  // רוחב
+                
+                // מרחק מינימלי מהמרכז כדי לא לחסום
+                if (Math.abs(bx) < 50 && Math.abs(bz) < 50) continue;
+
+                buildings.push(buildStructure(bx, bz, bw, bh));
             }
         }
         createCity();
 
-        /** 4. שליטת מצלמה **/
+        /** 4. מנגנון התחדשות (Regeneration) **/
+        function scheduleRegeneration(building) {
+            const delay = 5000 + Math.random() * 10000; // 5 עד 15 שניות
+            setTimeout(() => {
+                rebuildBuilding(building);
+            }, delay);
+        }
+
+        function rebuildBuilding(building) {
+            if (!building.destroyed) return;
+
+            playSound('rebuild');
+
+            // ניקוי הקבוצה הישנה (למקרה שנשאר משהו)
+            while(building.group.children.length > 0){ 
+                building.group.remove(building.group.children[0]); 
+            }
+
+            // יצירה מחדש של הווקסלים
+            const { w, h } = building.config;
+            building.voxels = [];
+
+            for(let y=0; y<h; y++) {
+                for(let ix=0; ix<w; ix++) {
+                    for(let iz=0; iz<w; iz++) {
+                        const isWindow = Math.random() > 0.92;
+                        const mat = new THREE.MeshStandardMaterial({ 
+                            color: isWindow ? 0x0ea5e9 : 0x1e293b,
+                            emissive: isWindow ? 0x0ea5e9 : 0x000000,
+                            emissiveIntensity: isWindow ? 2 : 0
+                        });
+                        const v = new THREE.Mesh(voxelGeo, mat);
+                        v.position.set(ix*2, y*2 + 1, iz*2);
+                        
+                        // התחלה בקנה מידה 0 לאנימציית צמיחה
+                        v.scale.set(0,0,0);
+                        
+                        building.group.add(v);
+                        building.voxels.push(v);
+
+                        // אנימציית צמיחה
+                        gsap.to(v.scale, {
+                            x: 1, y: 1, z: 1,
+                            duration: 0.5,
+                            delay: y * 0.1, // אפקט מדורג לפי גובה
+                            ease: "back.out(1.7)"
+                        });
+                    }
+                }
+            }
+            building.destroyed = false;
+        }
+
+
+        /** 5. שליטת מצלמה **/
         function moveCam(dir) {
             if (dir === 'left') camAngle += 0.2;
             if (dir === 'right') camAngle -= 0.2;
-            if (dir === 'up') camHeight = Math.min(camHeight + 10, 200);
-            if (dir === 'down') camHeight = Math.max(camHeight - 10, 20);
+            if (dir === 'up') {
+                camHeight = Math.min(camHeight + 50, 600);
+                camRadius = Math.min(camRadius + 50, 1000);
+            }
+            if (dir === 'down') {
+                camHeight = Math.max(camHeight - 50, 50);
+                camRadius = Math.max(camRadius - 50, 200);
+            }
         }
 
-        /** 5. ירי ופגיעה מדויקת **/
+        /** 6. ירי **/
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         window.addEventListener('mousedown', (e) => {
-            if (e.target.className === 'btn') return; // אל תירה כשלוחצים על כפתור
+            if (e.target.className.includes('btn')) return;
             
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             
-            // בדיקת פגיעה בכל המבנים
             const intersects = raycaster.intersectObjects(scene.children, true);
             if (intersects.length > 0) {
                 const target = intersects[0].point;
-                // מציאת המבנה הנכון
                 let hitB = null;
+                // חיפוש חכם של הבניין שנפגע
                 buildings.forEach(b => {
                     if (b.group === intersects[0].object.parent || b.group === intersects[0].object) hitB = b;
                 });
@@ -201,24 +291,23 @@
             playSound('launch');
             playSound('whistle');
 
-            // ציור פגז משופר (טיל עם שובל)
-            const shellGroup = new THREE.Group();
-            const head = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshBasicMaterial({color: 0xffffff}));
-            const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.1, 5), new THREE.MeshBasicMaterial({color: 0x38bdf8, transparent: true, opacity: 0.5}));
+            const shell = new THREE.Group();
+            const head = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({color: 0xffffff}));
+            const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.1, 8), new THREE.MeshBasicMaterial({color: 0x0ea5e9, transparent: true, opacity: 0.6}));
             trail.rotation.x = Math.PI / 2;
-            trail.position.z = 2.5;
-            shellGroup.add(head);
-            shellGroup.add(trail);
+            trail.position.z = 4;
+            shell.add(head); shell.add(trail);
             
-            shellGroup.position.set(camera.position.x, camera.position.y - 10, camera.position.z);
-            scene.add(shellGroup);
-            shellGroup.lookAt(target);
+            // יורה ממיקום המצלמה (לכאורה)
+            shell.position.set(camera.position.x, camera.position.y - 20, camera.position.z);
+            scene.add(shell);
+            shell.lookAt(target);
 
-            gsap.to(shellGroup.position, {
+            gsap.to(shell.position, {
                 x: target.x, y: target.y, z: target.z,
-                duration: 0.8, ease: "power2.in",
+                duration: 1.0, ease: "power2.in",
                 onComplete: () => {
-                    scene.remove(shellGroup);
+                    scene.remove(shell);
                     detonate(target, building);
                 }
             });
@@ -227,57 +316,64 @@
         function detonate(pos, building) {
             playSound('explode');
 
-            // פיצוץ ויזואלי
-            const light = new THREE.PointLight(0xffaa00, 20, 100);
+            const light = new THREE.PointLight(0xffaa00, 30, 200);
             light.position.copy(pos);
             scene.add(light);
-            gsap.to(light, { intensity: 0, duration: 0.6, onComplete: () => scene.remove(light) });
+            gsap.to(light, { intensity: 0, duration: 0.5, onComplete: () => scene.remove(light) });
 
             if (building && !building.destroyed) {
                 building.destroyed = true;
                 building.voxels.forEach((v) => {
                     const worldPos = new THREE.Vector3();
                     v.getWorldPosition(worldPos);
-                    scene.attach(v);
+                    scene.attach(v); // ניתוק מהבניין למרחב העולם
                     
                     const angle = Math.random() * Math.PI * 2;
-                    const force = 2 + Math.random() * 3;
-                    v.userData.velocity = new THREE.Vector3(Math.cos(angle) * force, 3 + Math.random() * 4, Math.sin(angle) * force);
+                    const force = 3 + Math.random() * 5;
+                    v.userData.velocity = new THREE.Vector3(Math.cos(angle) * force, 5 + Math.random() * 8, Math.sin(angle) * force);
                     v.userData.active = true;
                     debris.push(v);
 
-                    v.material.emissive.setHex(0xff4400);
-                    v.material.emissiveIntensity = 2;
-                    gsap.to(v.material.color, { r: 0.1, g: 0.1, b: 0.1, duration: 3 });
+                    v.material.emissive.setHex(0xffaa00);
+                    v.material.emissiveIntensity = 3;
+                    gsap.to(v.material.color, { r: 0.1, g: 0.1, b: 0.1, duration: 2 });
                 });
+                
+                // תזמון התחדשות
+                scheduleRegeneration(building);
             }
 
-            // רעידת מצלמה
-            gsap.fromTo(camera.position, { x: camera.position.x + 3 }, { x: camera.position.x, duration: 0.1, ease: "elastic.out" });
+            gsap.fromTo(camera.position, { x: camera.position.x + 5 }, { x: camera.position.x, duration: 0.1, ease: "elastic.out" });
         }
 
-        /** 6. לולאת אנימציה **/
+        /** 7. לולאת אנימציה **/
         function animate() {
             requestAnimationFrame(animate);
             
-            // עדכון מצלמה לפי כפתורים
-            const targetX = Math.cos(camAngle) * 300;
-            const targetZ = Math.sin(camAngle) * 300;
-            camera.position.lerp(new THREE.Vector3(targetX, camHeight, targetZ), 0.1);
+            // תנועת מצלמה חלקה
+            const targetX = Math.cos(camAngle) * camRadius;
+            const targetZ = Math.sin(camAngle) * camRadius;
+            camera.position.lerp(new THREE.Vector3(targetX, camHeight, targetZ), 0.05);
             camera.lookAt(0, 0, 0);
 
-            // פיזיקת רסיסים
+            // פיזיקת רסיסים וניקוי
             for (let i = debris.length - 1; i >= 0; i--) {
                 const v = debris[i];
                 if (v.userData.active) {
                     v.position.add(v.userData.velocity);
-                    v.userData.velocity.y -= 0.2; // כבידה
-                    v.userData.velocity.multiplyScalar(0.96); // חיכוך
+                    v.userData.velocity.y -= 0.3; // כבידה
+                    v.userData.velocity.multiplyScalar(0.97); // חיכוך אוויר
 
                     if (v.position.y < 1) {
                         v.position.y = 1;
                         v.userData.velocity.set(0,0,0);
                         v.userData.active = false;
+                        
+                        // ניקוי אוטומטי של רסיסים ישנים כדי לא לחנוק את הזיכרון
+                        if (debris.length > 2000) {
+                            scene.remove(v);
+                            debris.splice(i, 1);
+                        }
                     }
                 }
             }
