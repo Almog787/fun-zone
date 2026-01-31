@@ -1,0 +1,13 @@
+{
+  "shards": [
+    { "angle": 0.52, "vel": 18.5, "rot": {"x": 2, "y": 5, "z": 1}, "delay": 0.02 },
+    { "angle": 1.25, "vel": 22.1, "rot": {"x": 4, "y": 1, "z": 8}, "delay": 0.05 },
+    { "angle": 2.80, "vel": 15.2, "rot": {"x": 1, "y": 3, "z": 2}, "delay": 0.01 },
+    { "angle": 3.95, "vel": 25.0, "rot": {"x": 6, "y": 6, "z": 6}, "delay": 0.08 },
+    { "angle": 5.12, "vel": 12.8, "rot": {"x": 0, "y": 2, "z": 4}, "delay": 0.03 },
+    { "angle": 0.15, "vel": 20.4, "rot": {"x": 3, "y": 7, "z": 2}, "delay": 0.06 },
+    { "angle": 4.50, "vel": 28.3, "rot": {"x": 5, "y": 2, "z": 9}, "delay": 0.00 }
+  ],
+  "flashIntensity": 20,
+  "shockwaveScale": 15
+}
