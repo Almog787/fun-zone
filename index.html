@@ -2,22 +2,21 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>VOXEL ENGINE - ORGANIC MOVEMENT</title>
+    <title>VOXEL ENGINE - BRIGHT EDITION</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-        #hud { position: absolute; top: 30px; left: 30px; color: #38bdf8; pointer-events: none; z-index: 10; }
-        #loading { position: absolute; inset: 0; background: #000; color: #38bdf8; display: flex; justify-content: center; align-items: center; z-index: 100; font-size: 20px; letter-spacing: 2px; }
-        .btn-audio { position: absolute; bottom: 20px; right: 20px; background: transparent; color: #38bdf8; border: 1px solid #38bdf8; padding: 10px 20px; cursor: pointer; border-radius: 5px; transition: 0.3s; }
-        .btn-audio:hover { background: #38bdf8; color: #000; }
+        body { margin: 0; overflow: hidden; background: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        #hud { position: absolute; top: 30px; left: 30px; color: #1e293b; pointer-events: none; z-index: 10; }
+        #loading { position: absolute; inset: 0; background: #f1f5f9; color: #0ea5e9; display: flex; justify-content: center; align-items: center; z-index: 100; font-size: 20px; }
+        .btn-audio { position: absolute; bottom: 20px; right: 20px; background: #0ea5e9; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
-    <div id="loading">INITIALIZING ORGANIC PHYSICS...</div>
+    <div id="loading">טוען עולם מואר...</div>
     <div id="hud">
-        <h1 style="margin:0; font-size: 28px; letter-spacing: 3px;">VOXEL COMMAND</h1>
-        <p id="status">> MOTION: ORGANIC_FLOW | STATUS: ACTIVE</p>
+        <h1 style="margin:0; font-size: 28px; letter-spacing: 1px;">VOXEL COMMAND: BRIGHT</h1>
+        <p id="status">> LIGHT_ENGINE: ACTIVE | VISIBILITY: MAX</p>
     </div>
-    <button class="btn-audio" onclick="initAudio()">ENABLE AUDIO</button>
+    <button class="btn-audio" onclick="initAudio()">הפעל סאונד</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
@@ -30,7 +29,7 @@
         let levelData, explosionData;
         const buildings = [];
         const traffic = [];
-        const debris = []; // מערך לניהול רסיסים עם פיזיקה טבעית
+        const debris = [];
 
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -61,24 +60,30 @@
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(levelData.environment.sky);
-            scene.fog = new THREE.FogExp2(levelData.environment.sky, 0.006);
+            scene.fog = new THREE.Fog(levelData.environment.sky, 100, 500);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-            camera.position.set(150, 100, 200);
+            camera.position.set(150, 120, 250);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
 
+            // Bloom עדין יותר למראה נקי
             const renderScene = new THREE.RenderPass(scene, camera);
-            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), levelData.config.bloom, 0.4, 0.85);
+            const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), levelData.config.bloom, 0.3, 0.9);
             composer = new THREE.EffectComposer(renderer);
             composer.addPass(renderScene);
             composer.addPass(bloomPass);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-            const sun = new THREE.DirectionalLight(0xffffff, 1);
+            // תאורה חזקה ובהירה
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcbd5e1, 1.0);
+            scene.add(hemiLight);
+
+            const sun = new THREE.DirectionalLight(0xffffff, 0.8);
             sun.position.set(100, 200, 100);
+            sun.castShadow = true;
             scene.add(sun);
 
             createCity();
@@ -95,7 +100,9 @@
         }
 
         function createCity() {
-            scene.add(new THREE.GridHelper(1000, 80, levelData.environment.neon[0], 0x050505));
+            // רשת בהירה
+            scene.add(new THREE.GridHelper(1000, 60, 0x94a3b8, 0xe2e8f0));
+            
             const voxelGeo = new THREE.BoxGeometry(1.9, 1.9, 1.9);
             levelData.buildings.forEach(b => {
                 const group = new THREE.Group();
@@ -103,7 +110,11 @@
                 for(let y=0; y<b.h; y++) {
                     for(let x=0; x<b.w; x++) {
                         for(let z=0; z<b.d; z++) {
-                            const mat = new THREE.MeshStandardMaterial({ color: b.color, metalness: 0.8, roughness: 0.2 });
+                            const mat = new THREE.MeshStandardMaterial({ 
+                                color: b.color, 
+                                metalness: 0.4, 
+                                roughness: 0.1 
+                            });
                             const v = new THREE.Mesh(voxelGeo, mat);
                             v.position.set(x*2 - (b.w), y*2 + 1, z*2 - (b.d));
                             group.add(v);
@@ -120,14 +131,10 @@
         function createTraffic() {
             for(let i=0; i<levelData.config.trafficCount; i++) {
                 const drone = new THREE.Mesh(
-                    new THREE.BoxGeometry(1.5, 0.4, 3),
-                    new THREE.MeshBasicMaterial({ color: levelData.environment.neon[i % 3] })
+                    new THREE.BoxGeometry(2, 0.5, 4),
+                    new THREE.MeshStandardMaterial({ color: levelData.environment.neon[i % 3], emissive: levelData.environment.neon[i % 3], emissiveIntensity: 2 })
                 );
-                drone.userData = { 
-                    offset: Math.random() * 100, 
-                    speed: 0.2 + Math.random() * 0.3,
-                    radius: 50 + Math.random() * 100
-                };
+                drone.userData = { offset: Math.random() * 100, speed: 0.1 + Math.random() * 0.2, radius: 80 + Math.random() * 120 };
                 scene.add(drone);
                 traffic.push(drone);
             }
@@ -144,30 +151,34 @@
         }
 
         function launch(target, building) {
-            playSound(300, 'sine', 0.2);
-            const shell = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshBasicMaterial({color: 0xffffff}));
-            shell.position.set(200, 120, 200);
+            playSound(400, 'sine', 0.2);
+            const shell = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({color: 0x0ea5e9}));
+            shell.position.set(200, 150, 200);
             scene.add(shell);
 
-            // תנועה בליסטית טבעית יותר עם Ease מותאם
             gsap.to(shell.position, {
-                x: target.x, z: target.z, duration: 0.7, ease: "power1.inOut",
+                x: target.x, z: target.z, duration: 0.8, ease: "power2.inOut",
                 onComplete: () => { scene.remove(shell); detonate(target, building); }
             });
-            gsap.to(shell.position, { 
-                y: target.y + 60, duration: 0.35, yoyo: true, repeat: 1, ease: "power2.out" 
-            });
+            gsap.to(shell.position, { y: target.y + 80, duration: 0.4, yoyo: true, repeat: 1, ease: "power2.out" });
         }
 
         function detonate(pos, building) {
-            playSound(50, 'square', 1.2);
+            playSound(60, 'square', 1.5);
             
-            // Shockwave
-            const ring = new THREE.Mesh(new THREE.RingGeometry(1, 2, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }));
+            // Shockwave בהיר
+            const ring = new THREE.Mesh(new THREE.RingGeometry(1, 2, 32), new THREE.MeshBasicMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.5 }));
             ring.position.copy(pos); ring.rotation.x = -Math.PI/2;
             scene.add(ring);
-            gsap.to(ring.scale, { x: 50, y: 50, duration: 1, ease: "expo.out" });
-            gsap.to(ring.material, { opacity: 0, duration: 1, onComplete: () => scene.remove(ring) });
+            gsap.to(ring.scale, { x: 60, y: 60, duration: 1.2, ease: "expo.out" });
+            gsap.to(ring.material, { opacity: 0, duration: 1.2, onComplete: () => scene.remove(ring) });
+
+            // פלאש חזק שמאיר את כל הסצנה
+            const light = new THREE.PointLight(0xffffff, 30, 300);
+            light.position.copy(pos);
+            light.position.y += 10;
+            scene.add(light);
+            gsap.to(light, { intensity: 0, duration: 1, onComplete: () => scene.remove(light) });
 
             if (building && !building.destroyed) {
                 building.destroyed = true;
@@ -176,56 +187,47 @@
                     v.getWorldPosition(worldPos);
                     scene.attach(v);
                     
-                    // הוספת וקטור מהירות לרסיס (פיזיקה טבעית)
                     const angle = Math.random() * Math.PI * 2;
-                    const force = 1.5 + Math.random() * 2;
-                    v.userData.velocity = new THREE.Vector3(
-                        Math.cos(angle) * force,
-                        2 + Math.random() * 3,
-                        Math.sin(angle) * force
-                    );
+                    const force = 2 + Math.random() * 3;
+                    v.userData.velocity = new THREE.Vector3(Math.cos(angle) * force, 3 + Math.random() * 4, Math.sin(angle) * force);
                     v.userData.active = true;
                     debris.push(v);
 
-                    v.material.emissive.setHex(0xff3300);
-                    gsap.to(v.material.color, { r: 0, g: 0, b: 0, duration: 5 });
+                    v.material.emissive.setHex(0x0ea5e9);
+                    v.material.emissiveIntensity = 2;
+                    gsap.to(v.material.color, { r: 0.8, g: 0.8, b: 0.8, duration: 4 });
                 });
             }
 
-            // רעידת מצלמה "אורגנית"
-            gsap.fromTo(camera.position, 
-                { x: camera.position.x + 4, y: camera.position.y + 4 }, 
-                { x: camera.position.x, y: camera.position.y, duration: 0.1, ease: "elastic.out(1, 0.3)" }
-            );
+            gsap.fromTo(camera.position, { x: camera.position.x + 3 }, { x: camera.position.x, duration: 0.1, ease: "elastic.out(1, 0.3)" });
         }
 
         function animate() {
             requestAnimationFrame(animate);
             const time = Date.now() * 0.001;
 
-            // 1. מצלמה נושמת ואורגנית
-            const camOrbitRadius = 250;
-            camera.position.x = Math.cos(time * 0.1) * camOrbitRadius + (mouse.x * 10);
-            camera.position.z = Math.sin(time * 0.1) * camOrbitRadius + (mouse.y * 10);
-            camera.position.y = 100 + Math.sin(time * 0.5) * 5; // "נשימה" אנכית
+            // מצלמה נושמת
+            camera.position.x = Math.cos(time * 0.1) * 300 + (mouse.x * 20);
+            camera.position.z = Math.sin(time * 0.1) * 300 + (mouse.y * 20);
+            camera.position.y = 150 + Math.sin(time * 0.5) * 10;
             camera.lookAt(0, 0, 0);
 
-            // 2. תנועת רחפנים חלקה (Noise-like)
+            // רחפנים
             traffic.forEach((drone, i) => {
                 const d = drone.userData;
                 drone.position.x = Math.cos(time * d.speed + d.offset) * d.radius;
                 drone.position.z = Math.sin(time * d.speed + d.offset) * d.radius;
-                drone.position.y = 30 + Math.sin(time * 2 + i) * 5; // ריחוף טבעי
+                drone.position.y = 40 + Math.sin(time * 2 + i) * 8;
                 drone.rotation.y = -time * d.speed - d.offset + Math.PI/2;
             });
 
-            // 3. פיזיקת רסיסים עם חיכוך אוויר (Air Drag)
+            // פיזיקה
             for (let i = debris.length - 1; i >= 0; i--) {
                 const v = debris[i];
                 if (v.userData.active) {
                     v.position.add(v.userData.velocity);
-                    v.userData.velocity.y += levelData.config.gravity * 0.1; // כבידה
-                    v.userData.velocity.multiplyScalar(levelData.config.airResistance); // חיכוך אוויר
+                    v.userData.velocity.y += levelData.config.gravity * 0.15;
+                    v.userData.velocity.multiplyScalar(levelData.config.airResistance);
 
                     if (v.position.y < 1) {
                         v.position.y = 1;
