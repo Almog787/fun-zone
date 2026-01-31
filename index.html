@@ -2,203 +2,240 @@
 <html lang="he">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מטח ארטילרי תלת-ממדי</title>
+    <title>ARTILLERY FURY - Cinematic Destruction</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
-        #ui {
-            position: absolute; top: 20px; left: 20px; color: white;
-            pointer-events: none; text-shadow: 2px 2px 4px #000;
+        body { margin: 0; overflow: hidden; background: #020205; font-family: 'Orbitron', sans-serif; }
+        #overlay {
+            position: absolute; width: 100%; height: 100%; pointer-events: none;
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 100%);
+            color: #ff3300; padding: 20px; box-sizing: border-box;
         }
-        canvas { display: block; }
+        .stats { font-family: monospace; font-size: 14px; line-height: 1.5; color: #ff9900; }
+        .crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 30px; height: 30px; border: 2px solid rgba(255,50,0,0.5);
+            transform: translate(-50%, -50%); border-radius: 50%;
+        }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="ui">
-        <h1>מערכת ארטילריה אקטיבית</h1>
-        <p>לחץ על המבנים כדי להפגיז אותם</p>
+    <div id="overlay">
+        <div style="font-weight: 900; font-size: 24px; letter-spacing: 5px;">HEAVY ARTILLERY v5.0</div>
+        <div class="stats">
+            > STATUS: ENGAGED<br>
+            > AMMO: HIGH EXPLOSIVE (HE)<br>
+            > DISTANCE: CALCULATING...
+        </div>
+        <div class="crosshair"></div>
     </div>
 
-    <!-- ספריות חיצוניות -->
+    <!-- ספריות -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 
     <script>
-        // --- הגדרות בסיסיות ---
+        /** אתחול מנוע **/
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050508);
-        scene.fog = new THREE.Fog(0x050508, 20, 100);
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.FogExp2(0x020205, 0.015);
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // תאורה
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
-        scene.add(ambientLight);
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1);
-        sunLight.position.set(10, 50, 10);
-        sunLight.castShadow = true;
-        scene.add(sunLight);
+        /** תאורה **/
+        const hemi = new THREE.HemisphereLight(0x222244, 0x000000, 0.6);
+        scene.add(hemi);
 
-        // קרקע
-        const groundGeo = new THREE.PlaneGeometry(200, 200);
-        const groundMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
+        /** קרקע **/
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(1000, 1000),
+            new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 })
+        );
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // --- יצירת עיר ---
+        /** עיר מפורטת **/
         const buildings = [];
-        function createCity() {
-            const bGeo = new THREE.BoxGeometry(1, 1, 1);
-            for (let i = 0; i < 40; i++) {
-                const h = Math.random() * 5 + 2;
-                const material = new THREE.MeshPhongMaterial({ 
-                    color: 0x444455,
-                    emissive: 0x111122
-                });
-                const b = new THREE.Mesh(bGeo, material);
-                b.scale.set(2, h, 2);
-                b.position.set(Math.random() * 40 - 20, h/2, Math.random() * 40 - 20);
-                b.castShadow = true;
-                b.receiveShadow = true;
-                b.userData.isBuilding = true;
-                b.userData.health = 100;
-                scene.add(b);
-                buildings.push(b);
-            }
+        const bGeo = new THREE.BoxGeometry(1, 1, 1);
+        for (let i = 0; i < 70; i++) {
+            const h = Math.random() * 15 + 5;
+            const w = Math.random() * 4 + 3;
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: 0x1a1a1c, 
+                emissive: 0x111111 
+            });
+            const b = new THREE.Mesh(bGeo, mat);
+            b.scale.set(w, h, w);
+            b.position.set(Math.random() * 140 - 70, h/2, Math.random() * 140 - 70);
+            b.castShadow = true;
+            b.userData = { health: 100, originalHeight: h, maxH: h };
+            scene.add(b);
+            buildings.push(b);
         }
-        createCity();
 
-        camera.position.set(0, 15, 30);
+        camera.position.set(0, 50, 100);
         camera.lookAt(0, 0, 0);
 
-        // --- מערכת חלקיקים לפיצוץ ---
+        /** מערכת חלקיקים משופרת **/
         const particles = [];
-        function createExplosion(pos) {
-            const particleCount = 100;
-            const geo = new THREE.SphereGeometry(0.1, 8, 8);
-            
-            for (let i = 0; i < particleCount; i++) {
-                const mat = new THREE.MeshBasicMaterial({ 
-                    color: Math.random() > 0.5 ? 0xff4500 : 0xffd700 
-                });
-                const p = new THREE.Mesh(geo, mat);
-                p.position.copy(pos);
-                
-                // וקטור כיוון אקראי לפיצוץ
-                const velocity = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.5,
-                    Math.random() * 0.5,
-                    (Math.random() - 0.5) * 0.5
+        function createExplosionEffect(pos, type) {
+            const count = type === 'fire' ? 50 : 30;
+            const color = type === 'fire' ? 0xff4400 : 0x444444;
+            const size = type === 'fire' ? 0.6 : 1.2;
+
+            for(let i=0; i<count; i++) {
+                const p = new THREE.Mesh(
+                    new THREE.SphereGeometry(size, 4, 4),
+                    new THREE.MeshBasicMaterial({ color: color, transparent: true })
                 );
-                
-                particles.push({ mesh: p, vel: velocity, life: 1.0 });
+                p.position.copy(pos);
+                const vel = new THREE.Vector3(
+                    (Math.random()-0.5) * 1.5,
+                    Math.random() * 1.5,
+                    (Math.random()-0.5) * 1.5
+                );
+                particles.push({ mesh: p, vel: vel, life: 1.0, type: type });
                 scene.add(p);
             }
         }
 
-        // --- ירי ארטילרי ---
+        /** לוגיקת ירי **/
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        window.addEventListener('mousedown', (event) => {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
+        window.addEventListener('mousedown', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(buildings);
-
-            if (intersects.length > 0) {
-                const target = intersects[0].object;
-                const targetPos = intersects[0].point;
-                launchProjectile(targetPos, target);
+            
+            const hits = raycaster.intersectObjects(buildings);
+            if (hits.length > 0) {
+                launchShell(hits[0].point, hits[0].object);
             }
         });
 
-        function launchProjectile(targetPos, targetBuilding) {
-            const projectile = new THREE.Mesh(
-                new THREE.SphereGeometry(0.3, 8, 8),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
+        function launchShell(targetPos, building) {
+            const shell = new THREE.Mesh(
+                new THREE.SphereGeometry(0.5, 8, 8),
+                new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff0000 })
             );
-            const startPos = new THREE.Vector3(-30, 0, 30); // נקודת יציאה של הארטילריה
-            projectile.position.copy(startPos);
-            scene.add(projectile);
+            const startPos = new THREE.Vector3(80, 20, 80);
+            shell.position.copy(startPos);
+            scene.add(shell);
 
-            // אנימציית מעוף עם GSAP (קשת בליסטית)
-            gsap.to(projectile.position, {
+            // אור שזז עם הפגז
+            const shellLight = new THREE.PointLight(0xff6600, 2, 20);
+            scene.add(shellLight);
+
+            // אנימציה בליסטית
+            gsap.to(shell.position, {
                 x: targetPos.x,
                 z: targetPos.z,
-                duration: 1,
+                duration: 1.2,
                 ease: "none",
+                onUpdate: () => { shellLight.position.copy(shell.position); },
                 onComplete: () => {
-                    scene.remove(projectile);
-                    impact(targetPos, targetBuilding);
+                    scene.remove(shell);
+                    scene.remove(shellLight);
+                    detonate(targetPos, building);
                 }
             });
-            // גובה הקשת
-            gsap.to(projectile.position, {
-                y: targetPos.y + 10,
-                duration: 0.5,
-                ease: "power2.out",
+
+            // קשת הגובה
+            gsap.to(shell.position, {
+                y: targetPos.y + 30,
+                duration: 0.6,
+                ease: "power1.out",
                 yoyo: true,
                 repeat: 1
             });
         }
 
-        function impact(pos, building) {
-            createExplosion(pos);
-            
-            // זעזוע מצלמה
+        function detonate(pos, b) {
+            // 1. הבזק אור
+            const flash = new THREE.PointLight(0xffffff, 10, 50);
+            flash.position.copy(pos);
+            scene.add(flash);
+            gsap.to(flash, { intensity: 0, duration: 0.4, onComplete: () => scene.remove(flash) });
+
+            // 2. יצירת אפקטים
+            createExplosionEffect(pos, 'fire');
+            setTimeout(() => createExplosionEffect(pos, 'smoke'), 100);
+
+            // 3. זעזוע מצלמה
             gsap.to(camera.position, {
-                x: camera.position.x + (Math.random() - 0.5) * 2,
-                y: camera.position.y + (Math.random() - 0.5) * 2,
-                duration: 0.1,
-                yoyo: true,
-                repeat: 3
+                x: camera.position.x + (Math.random()-0.5)*8,
+                duration: 0.05, yoyo: true, repeat: 10
             });
 
-            // הרס מבנה
-            if (building.userData.health > 0) {
-                building.userData.health -= 50;
-                gsap.to(building.scale, { y: building.scale.y * 0.5, duration: 0.5 });
-                gsap.to(building.position, { y: building.position.y - building.scale.y * 0.25, duration: 0.5 });
-                building.material.color.setHex(0x222222);
+            // 4. הרס פיזי למבנה
+            if (b) {
+                b.userData.health -= 35;
+                const ratio = Math.max(0.1, b.userData.health / 100);
+                gsap.to(b.scale, { y: b.userData.maxH * ratio, duration: 0.8, ease: "bounce.out" });
+                gsap.to(b.position, { y: (b.userData.maxH * ratio) / 2, duration: 0.8 });
+                
+                // שינוי צבע לחרוך
+                b.material.color.lerp(new THREE.Color(0x000000), 0.3);
+            }
+
+            // 5. שברים עפים (Debris)
+            for(let i=0; i<10; i++) {
+                const chunk = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.8,0.8), new THREE.MeshStandardMaterial({color:0x222222}));
+                chunk.position.copy(pos);
+                scene.add(chunk);
+                const v = new THREE.Vector3((Math.random()-0.5)*15, Math.random()*15, (Math.random()-0.5)*15);
+                particles.push({ mesh: chunk, vel: v, life: 3.0, type: 'debris' });
             }
         }
 
-        // --- לולאת רנדר ---
+        /** לולאת רנדר **/
         function animate() {
             requestAnimationFrame(animate);
 
-            // עדכון חלקיקים
+            // עדכון חלקיקים ושברים
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.mesh.position.add(p.vel);
-                p.vel.y -= 0.01; // כוח כבידה לחלקיקים
-                p.life -= 0.02;
-                p.mesh.scale.setScalar(p.life);
                 
-                if (p.life <= 0) {
+                if (p.type === 'debris') {
+                    p.vel.y -= 0.4; // כבידה לשברים
+                    if (p.mesh.position.y < 0) {
+                        p.mesh.position.y = 0;
+                        p.vel.set(0,0,0);
+                    }
+                } else {
+                    p.life -= 0.015;
+                    p.mesh.scale.setScalar(p.life);
+                    p.mesh.material.opacity = p.life;
+                }
+
+                if (p.life <= 0 && p.type !== 'debris') {
                     scene.remove(p.mesh);
                     particles.splice(i, 1);
                 }
             }
 
+            // תנועת מצלמה עדינה
+            const t = Date.now() * 0.0002;
+            camera.position.x += Math.cos(t) * 0.1;
+
             renderer.render(scene, camera);
         }
+
+        animate();
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        animate();
     </script>
 </body>
 </html>
