@@ -1,48 +1,26 @@
 {
   "metadata": {
-    "levelName": "Voxel Metropolis: Sector 7",
-    "version": "2.1",
-    "author": "VoxelEngine"
-  },
-  "physics": {
-    "gravity": -0.55,
-    "shellSpeed": 0.75,
-    "explosionForce": 25.0,
-    "airResistance": 0.98
+    "name": "Mega Voxel City",
+    "gravity": -0.6
   },
   "environment": {
-    "skyColor": "#020617",
-    "gridColor": "#1e293b",
-    "groundColor": "#020617",
-    "fogDensity": 0.015,
-    "ambientIntensity": 0.7,
-    "sunlight": {
-      "color": "#ffffff",
-      "intensity": 1.2,
-      "position": { "x": 50, "y": 100, "z": 50 }
-    }
+    "sky": "#020617",
+    "grid": "#1e293b",
+    "ambient": 0.5
   },
   "buildings": [
-    { "id": 1, "name": "Central Tower", "x": 0, "z": 0, "w": 3, "d": 3, "h": 18, "color": "#94a3b8" },
-    { "id": 2, "name": "North Block", "x": 0, "z": -40, "w": 5, "d": 2, "h": 8, "color": "#64748b" },
-    { "id": 3, "name": "South Gate", "x": 0, "z": 40, "w": 5, "d": 2, "h": 8, "color": "#64748b" },
-    
-    { "id": 4, "name": "East Sky-Piercer", "x": 35, "z": 5, "w": 2, "d": 2, "h": 22, "color": "#cbd5e1" },
-    { "id": 5, "name": "West Sky-Piercer", "x": -35, "z": 5, "w": 2, "d": 2, "h": 22, "color": "#cbd5e1" },
-
-    { "id": 6, "name": "Bunker Alpha", "x": -20, "z": -20, "w": 4, "d": 4, "h": 4, "color": "#1e293b" },
-    { "id": 7, "name": "Bunker Beta", "x": 20, "z": -20, "w": 4, "d": 4, "h": 4, "color": "#1e293b" },
-    
-    { "id": 8, "name": "Apartment A", "x": -45, "z": -35, "w": 3, "d": 3, "h": 10, "color": "#475569" },
-    { "id": 9, "name": "Apartment B", "x": -45, "z": -15, "w": 3, "d": 3, "h": 10, "color": "#475569" },
-    { "id": 10, "name": "Apartment C", "x": 45, "z": -35, "w": 3, "d": 3, "h": 10, "color": "#475569" },
-    { "id": 11, "name": "Apartment D", "x": 45, "z": -15, "w": 3, "d": 3, "h": 10, "color": "#475569" },
-
-    { "id": 12, "name": "Industrial Stack 1", "x": -15, "z": 50, "w": 2, "d": 2, "h": 14, "color": "#334155" },
-    { "id": 13, "name": "Industrial Stack 2", "x": -5, "z": 50, "w": 2, "d": 2, "h": 14, "color": "#334155" },
-    { "id": 14, "name": "Warehouse", "x": 15, "z": 50, "w": 6, "d": 4, "h": 5, "color": "#1e293b" },
-
-    { "id": 15, "name": "Observation Post", "x": 60, "z": 60, "w": 2, "d": 2, "h": 12, "color": "#0ea5e9" },
-    { "id": 16, "name": "Observation Post", "x": -60, "z": -60, "w": 2, "d": 2, "h": 12, "color": "#0ea5e9" }
+    { "x": 0, "z": 0, "w": 4, "d": 4, "h": 15, "color": "#94a3b8" },
+    { "x": -30, "z": -30, "w": 3, "d": 3, "h": 20, "color": "#64748b" },
+    { "x": 30, "z": 30, "w": 3, "d": 3, "h": 20, "color": "#64748b" },
+    { "x": -30, "z": 30, "w": 5, "d": 5, "h": 6, "color": "#475569" },
+    { "x": 30, "z": -30, "w": 5, "d": 5, "h": 6, "color": "#475569" },
+    { "x": 0, "z": 50, "w": 2, "d": 2, "h": 25, "color": "#cbd5e1" },
+    { "x": 0, "z": -50, "w": 2, "d": 2, "h": 25, "color": "#cbd5e1" },
+    { "x": 50, "z": 0, "w": 6, "d": 2, "h": 10, "color": "#334155" },
+    { "x": -50, "z": 0, "w": 6, "d": 2, "h": 10, "color": "#334155" },
+    { "x": 20, "z": 0, "w": 2, "d": 2, "h": 8, "color": "#1e293b" },
+    { "x": -20, "z": 0, "w": 2, "d": 2, "h": 8, "color": "#1e293b" },
+    { "x": 15, "z": 15, "w": 2, "d": 2, "h": 5, "color": "#0f172a" },
+    { "x": -15, "z": -15, "w": 2, "d": 2, "h": 5, "color": "#0f172a" }
   ]
 }
