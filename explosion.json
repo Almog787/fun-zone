@@ -1,17 +1,14 @@
 {
-  "params": {
-    "fireParticles": 150,
-    "smokeParticles": 100,
-    "sparks": 200,
-    "shockwaveRadius": 45,
-    "flashIntensity": 40
+  "vfx": {
+    "fireCount": 200,
+    "smokeCount": 150,
+    "sparkCount": 300,
+    "shockwaveSpeed": 0.6,
+    "cameraShake": 5
   },
-  "shardPhysics": [
-    { "angle": 0.2, "power": 1.8, "rot": 5 },
-    { "angle": 1.1, "power": 2.5, "rot": 8 },
-    { "angle": 2.4, "power": 1.2, "rot": 3 },
-    { "angle": 3.7, "power": 3.0, "rot": 10 },
-    { "angle": 4.9, "power": 2.1, "rot": 6 },
-    { "angle": 5.8, "power": 1.5, "rot": 4 }
-  ]
+  "physics": {
+    "shardForce": 35,
+    "shardRotation": 15,
+    "debrisLife": 3000
+  }
 }
