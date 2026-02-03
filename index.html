@@ -2,115 +2,153 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>סימולטור סידור עבודה - רכבת קלה</title>
+    <title>מערכת שיבוץ תחנות - הקו האדום</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
-        body { font-family: 'Heebo', sans-serif; }
-        .shift-card:hover { transform: translateY(-2px); transition: 0.2s; }
+        body { font-family: 'Heebo', sans-serif; font-size: 14px; }
+        .station-row:nth-child(even) { background-color: #f9fafb; }
+        .shift-box { min-height: 80px; transition: 0.3s; }
+        .shift-box:hover { background-color: #eff6ff; border-color: #3b82f6; }
+        .mission-tag { font-size: 10px; padding: 1px 4px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+        .on-board { background-color: #dbeafe; color: #1e40af; }
+        .station-ctrl { background-color: #dcfce7; color: #166534; }
+        .car-ctrl { background-color: #fef9c3; color: #854d0e; }
+        .safety-ctrl { background-color: #fee2e2; color: #991b1b; }
+        .sticky-col { position: sticky; right: 0; background: white; z-index: 10; border-left: 2px solid #e5e7eb; }
     </style>
 </head>
-<body class="bg-gray-100 p-8">
+<body class="bg-gray-50 p-4">
 
-    <div class="max-w-7xl mx-auto">
-        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm">
+    <div class="max-w-full mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6 bg-white p-6 rounded-xl shadow-md border-b-4 border-blue-600">
             <div>
-                <h1 class="text-3xl font-bold text-blue-900">מערכת בקרה ושיבוץ - הקו האדום</h1>
-                <p class="text-gray-500">סימולציה של 34 תחנות | 15 בקרים | משימות חודשיות</p>
+                <h1 class="text-3xl font-bold text-gray-800">מטריצת איוש שבועי - 34 תחנות הקו האדום</h1>
+                <p class="text-blue-600 font-medium">ניהול משימות: On-Board | קרונות | תחנות | בטיחות</p>
             </div>
-            <button onclick="generateSchedule()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition">
-                ייצר סידור עבודה שבועי
-            </button>
+            <div class="flex gap-3">
+                <button onclick="generateGrid()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold shadow-lg transition transform hover:scale-105">
+                    ייצר סידור חדש
+                </button>
+            </div>
         </header>
 
-        <!-- KPI Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white p-4 rounded-lg shadow-sm border-r-4 border-blue-500">
-                <div class="text-sm text-gray-500">סה"כ תחנות</div>
-                <div class="text-2xl font-bold">34</div>
+        <!-- Stats Panel -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <span class="text-gray-500 block">תחנות מאוישות</span>
+                <span id="coveredStations" class="text-2xl font-bold text-blue-600">0</span>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-sm border-r-4 border-green-500">
-                <div class="text-sm text-gray-500">בקרים פעילים</div>
-                <div class="text-2xl font-bold">15</div>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <span class="text-gray-500 block">בקרים בשימוש</span>
+                <span class="text-2xl font-bold text-green-600">15</span>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-sm border-r-4 border-yellow-500">
-                <div class="text-sm text-gray-500">משימות לביצוע החודש</div>
-                <div class="text-2xl font-bold">136</div>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <span class="text-gray-500 block">חריגות שעות (>9ש')</span>
+                <span id="alertCount" class="text-2xl font-bold text-red-600">0</span>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-sm border-r-4 border-red-500">
-                <div class="text-sm text-gray-500">יעד שעות חודשי</div>
-                <div class="text-2xl font-bold">2,000</div>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <span class="text-gray-500 block">סטטוס מכסה חודשית</span>
+                <span class="text-2xl font-bold text-yellow-600">62%</span>
             </div>
         </div>
 
-        <!-- Schedule Table -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <table class="w-full text-right">
-                <thead class="bg-gray-50 border-b">
-                    <tr>
-                        <th class="p-4">יום</th>
-                        <th class="p-4">בקר</th>
-                        <th class="p-4">שעות</th>
-                        <th class="p-4">משימה / תחנה</th>
-                        <th class="p-4">סטטוס חריגה</th>
+        <!-- Matrix Table -->
+        <div class="bg-white rounded-xl shadow-2xl overflow-x-auto border border-gray-200">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-800 text-white">
+                        <th class="p-4 text-right sticky-col w-48">תחנה \ יום</th>
+                        <th class="p-4 border-r border-gray-700">ראשון</th>
+                        <th class="p-4 border-r border-gray-700">שני</th>
+                        <th class="p-4 border-r border-gray-700">שלישי</th>
+                        <th class="p-4 border-r border-gray-700">רביעי</th>
+                        <th class="p-4 border-r border-gray-700">חמישי</th>
+                        <th class="p-4 border-r border-gray-700 bg-blue-900">שישי</th>
+                        <th class="p-4 border-r border-gray-700 bg-indigo-900">מוצ"ש</th>
                     </tr>
                 </thead>
-                <tbody id="scheduleBody" class="divide-y divide-gray-100">
-                    <!-- Data injected here -->
+                <tbody id="matrixBody">
+                    <!-- Rows will be generated by JS -->
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
+        const stations = [
+            "תחנה מרכזית פתח תקווה", "פינסקר", "בלינסון", "דנקנר", "שנקר", "שחם", "גשר אם המושבות",
+            "אהרונוביץ'", "בן גוריון", "ביאליק", "אבא הלל", "ארלוזורוב", "שאול המלך", "יהודית", "קרליבך",
+            "אלנבי", "אליפלט", "שלמה", "אצטדיון בלומפילד", "עזה", "ארליך", "איסקוב", "הבעש\"ט", 
+            "מחרוזת", "העצמאות", "רוטשילד", "ז'בוטינסקי", "בלפור", "בנימין", "יוספטל", "כ\"ט בנובמבר",
+            "העמל", "הקוממיות", "פארק דרום"
+        ];
+
         const controllers = ["אורי מייזלר", "אינה טימופייב", "אלתי קראו", "בוריס דולציגר", "בוריס ינקין", "בתיה אביה", "גדי בן אור", "דוד סייג", "הרצל שגב", "יוני יוסף", "משה אליהו", "ערן ניצן", "רון טוב", "אברהם גברילביץ'", "יוני ניסן"];
-        const stations = ["תחנה מרכזית פ\"ת", "פינסקר", "בלינסון", "דנקנר", "שנקר", "שחם", "גשר אם המושבות", "אהרונוביץ'", "בן גוריון", "ביאליק", "אבא הלל", "ארלוזורוב", "שאול המלך", "יהודית", "קרליבך", "אלנבי", "אליפלט", "שלמה", "אצטדיון בלומפילד", "עזה", "ארליך", "איסקוב", "הבעש\"ט", "מחרוזת", "העצמאות", "רוטשילד", "ז'בוטינסקי", "בלפור", "בנימין", "יוספטל", "כ\"ט בנובמבר", "העמל", "הקוממיות", "פארק דרום"];
-        const missions = ["On-Board", "קרונות", "תחנות", "בטיחות"];
-        const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "מוצ\"ש"];
+        
+        const missionTypes = [
+            { id: 'on-board', label: 'On-Board', class: 'on-board' },
+            { id: 'station', label: 'תחנות', class: 'station-ctrl' },
+            { id: 'car', label: 'קרונות', class: 'car-ctrl' },
+            { id: 'safety', label: 'בטיחות', class: 'safety-ctrl' }
+        ];
 
-        function generateSchedule() {
-            const tbody = document.getElementById('scheduleBody');
+        function generateGrid() {
+            const tbody = document.getElementById('matrixBody');
             tbody.innerHTML = '';
-            
-            let currentMissionIdx = 0;
+            let alertCount = 0;
+            let coveredCount = 0;
 
-            days.forEach((day, dayIdx) => {
-                // סימולציה של 6 בקרים ביום
-                let dailyControllers = [...controllers].sort(() => 0.5 - Math.random()).slice(0, 6);
-                
-                dailyControllers.forEach((name, i) => {
-                    let start = 6 + i;
-                    let end = start + 9 + (Math.random() > 0.5 ? 1 : 0);
-                    
-                    // חוקי סופ"ש
-                    if(day === "שישי") { start = 6; end = 15; }
-                    if(day === "מוצ\"ש") { start = 19; end = 24; }
+            stations.forEach((stationName, sIdx) => {
+                let row = `<tr class="station-row border-b border-gray-100">
+                    <td class="p-3 font-bold text-gray-700 sticky-col shadow-sm">${stationName}</td>`;
 
-                    const duration = end - start;
-                    const station = stations[Math.floor(Math.random() * stations.length)];
-                    const mission = missions[Math.floor(Math.random() * missions.length)];
+                for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+                    // סימולציית איוש: לא כל התחנות מאוישות בכל יום (מדמה פריסה ריאלית של 15 בקרים)
+                    const isOccupied = Math.random() > 0.6; 
                     
-                    const row = `
-                        <tr class="hover:bg-blue-50 transition">
-                            <td class="p-4 font-bold text-blue-600">${day}</td>
-                            <td class="p-4">${name}</td>
-                            <td class="p-4">${start.toString().padStart(2, '0')}:00 - ${end.toString().padStart(2, '0')}:00</td>
-                            <td class="p-4">
-                                <span class="bg-gray-100 text-xs px-2 py-1 rounded border">${mission}</span>
-                                <span class="mr-2 font-medium">${station}</span>
-                            </td>
-                            <td class="p-4">
-                                ${duration > 9 ? '<span class="text-red-500 font-bold">⚠️ חריגת 9 שעות</span>' : '<span class="text-green-500">תקין</span>'}
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
+                    if (isOccupied) {
+                        const controller = controllers[Math.floor(Math.random() * controllers.length)];
+                        const mission = missionTypes[Math.floor(Math.random() * missionTypes.length)];
+                        
+                        // חישוב שעות דינמי
+                        let start = 6 + Math.floor(Math.random() * 4);
+                        let duration = 8 + Math.floor(Math.random() * 4); // 8-12 שעות
+                        
+                        // חוקי שישי/מוצ"ש
+                        if(dayIdx === 5) { start = 6; duration = 8.5; } // שישי
+                        if(dayIdx === 6) { start = 19; duration = 5; } // מוצ"ש
+
+                        let end = start + duration;
+                        const isAlert = duration > 9 && dayIdx < 5;
+                        if(isAlert) alertCount++;
+                        coveredCount++;
+
+                        row += `
+                        <td class="p-2 border-r border-gray-100">
+                            <div class="shift-box border-l-4 ${isAlert ? 'border-red-500 bg-red-50' : 'border-blue-400'} p-2 rounded shadow-sm text-xs">
+                                <div class="font-bold text-gray-800">${controller}</div>
+                                <div class="text-gray-500 font-medium">${start.toString().padStart(2,'0')}:00 - ${(end % 24).toString().padStart(2,'0')}:00</div>
+                                <div class="mission-tag ${mission.class}">${mission.label}</div>
+                                ${isAlert ? '<div class="text-[9px] text-red-600 font-bold mt-1">⚠️ חריגה</div>' : ''}
+                            </div>
+                        </td>`;
+                    } else {
+                        row += `<td class="p-2 border-r border-gray-100 bg-gray-50/50">
+                            <div class="text-gray-300 text-center italic text-xs">---</div>
+                        </td>`;
+                    }
+                }
+                row += `</tr>`;
+                tbody.innerHTML += row;
             });
+
+            document.getElementById('alertCount').innerText = alertCount;
+            document.getElementById('coveredStations').innerText = Math.round(coveredCount / 7);
         }
 
-        // Initial run
-        window.onload = generateSchedule;
+        window.onload = generateGrid;
     </script>
 </body>
 </html>
