@@ -2,14 +2,18 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>מערכת בקרה - חיפוש וסינון מתקדם</title>
+    <title>מערכת בקרה - זיהוי התנגשויות אוטומטי</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
         body { font-family: 'Heebo', sans-serif; }
         .sticky-col { position: sticky; right: 0; background: white; z-index: 20; border-left: 2px solid #e5e7eb; }
-        .shift-cell { min-height: 80px; transition: all 0.2s; }
-        .highlight { background-color: #fef08a; }
+        .conflict-glow { animation: alertPulse 2s infinite; }
+        @keyframes alertPulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -25,22 +29,25 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-auto p-6">
             <header class="mb-6">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex justify-between items-center mb-4">
                     <div>
                         <h1 class="text-3xl font-bold text-slate-800">מטריצת איוש שבועי</h1>
-                        <p class="text-slate-500">ניהול 34 תחנות הקו האדום</p>
+                        <p class="text-slate-500">ניהול 34 תחנות | בדיקת התנגשויות פעילה ✅</p>
                     </div>
-                    <button onclick="generateNewData()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md">ייצר סידור אקראי</button>
+                    <div class="flex gap-2">
+                        <div id="conflictBadge" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded-lg font-bold border border-red-200 flex items-center gap-2">
+                            <span>⚠️ נמצאו התנגשויות בסידור</span>
+                        </div>
+                        <button onclick="generateNewData()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">ייצר סידור אקראי</button>
+                    </div>
                 </div>
 
                 <!-- Filters Bar -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border flex flex-wrap gap-4 items-center">
                     <div class="flex-1 min-w-[200px]">
-                        <label class="block text-xs font-bold text-slate-400 mb-1">חיפוש חופשי</label>
-                        <input type="text" id="searchInput" oninput="applyFilters()" placeholder="חפש תחנה או בקר..." class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="text" id="searchInput" oninput="applyFilters()" placeholder="חפש תחנה או בקר..." class="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="w-48">
-                        <label class="block text-xs font-bold text-slate-400 mb-1">סינון לפי גזרה</label>
                         <select id="sectorFilter" onchange="applyFilters()" class="w-full border rounded-lg px-3 py-2 outline-none">
                             <option value="all">כל הגזרות</option>
                             <option value="פתח תקווה">גזרת פתח תקווה</option>
@@ -50,23 +57,20 @@
                             <option value="בת ים">גזרת בת ים</option>
                         </select>
                     </div>
-                    <div class="w-48">
-                        <label class="block text-xs font-bold text-slate-400 mb-1">סינון לפי בקר</label>
-                        <select id="controllerFilter" onchange="applyFilters()" class="w-full border rounded-lg px-3 py-2 outline-none">
-                            <option value="all">כל הבקרים</option>
-                        </select>
-                    </div>
-                    <div class="pt-4">
-                        <span id="resultsCount" class="text-sm font-medium text-blue-600"></span>
-                    </div>
                 </div>
             </header>
+
+            <!-- Conflict Summary Panel -->
+            <div id="conflictPanel" class="hidden mb-6 bg-red-50 border-r-4 border-red-500 p-4 rounded-lg shadow-sm">
+                <h3 class="font-bold text-red-800 mb-2">פירוט שגיאות וסתירות:</h3>
+                <ul id="conflictList" class="text-sm text-red-700 list-disc list-inside"></ul>
+            </div>
 
             <!-- Table -->
             <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-slate-800 text-white text-xs">
+                    <thead class="bg-slate-800 text-white text-xs">
+                        <tr>
                             <th class="p-4 sticky-col">תחנה \ יום</th>
                             <th class="p-4 border-r border-slate-700">ראשון</th>
                             <th class="p-4 border-r border-slate-700">שני</th>
@@ -95,24 +99,19 @@
         const controllers = ["אורי מייזלר", "אינה טימופייב", "אלתי קראו", "בוריס דולציגר", "בתיה אביה", "דוד סייג", "הרצל שגב", "יוני יוסף", "משה אליהו", "ערן ניצן", "רון טוב", "אברהם גברילביץ'"];
         const missions = ["On-Board", "תחנות", "קרונות", "בטיחות"];
         
-        let allAssignments = {}; // נשמור כאן את הנתונים: { "Station": [day0, day1, ...] }
-
-        function init() {
-            const ctrlFilter = document.getElementById('controllerFilter');
-            controllers.forEach(c => ctrlFilter.innerHTML += `<option value="${c}">${c}</option>`);
-            generateNewData();
-        }
+        let allAssignments = {};
 
         function generateNewData() {
             allAssignments = {};
             Object.values(sectors).flat().forEach(station => {
                 allAssignments[station] = Array(7).fill(null).map((_, dIdx) => {
-                    if (Math.random() > 0.7) {
+                    // הגדלנו מעט את הסיכוי כדי ליצור התנגשויות בסימולציה
+                    if (Math.random() > 0.65) {
                         return {
                             name: controllers[Math.floor(Math.random() * controllers.length)],
                             mission: missions[Math.floor(Math.random() * missions.length)],
                             hours: dIdx === 5 ? "06:00-15:00" : (dIdx === 6 ? "19:00-00:00" : "07:00-17:00"),
-                            alert: dIdx < 5 ? Math.random() > 0.8 : false
+                            alert: dIdx < 5 ? Math.random() > 0.85 : false
                         };
                     }
                     return null;
@@ -122,55 +121,92 @@
             updateStats();
         }
 
+        // --- מנוע זיהוי התנגשויות ---
+        function detectConflicts() {
+            let conflicts = [];
+            const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "מוצ\"ש"];
+            
+            // בדיקה יומית
+            for(let d = 0; d < 7; d++) {
+                let dailyMap = {}; // בקר -> רשימת תחנות
+
+                Object.entries(allAssignments).forEach(([station, assignments]) => {
+                    const a = assignments[d];
+                    if (a) {
+                        if (!dailyMap[a.name]) dailyMap[a.name] = [];
+                        dailyMap[a.name].push(station);
+                    }
+                });
+
+                // מעבר על המפה ובדיקת כפילויות
+                Object.entries(dailyMap).forEach(([name, stations]) => {
+                    if (stations.length > 1) {
+                        conflicts.push({
+                            type: 'DOUBLE_SHIFT',
+                            name: name,
+                            day: days[d],
+                            stations: stations
+                        });
+                    }
+                });
+            }
+            return conflicts;
+        }
+
         function applyFilters() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const sectorTerm = document.getElementById('sectorFilter').value;
-            const ctrlTerm = document.getElementById('controllerFilter').value;
             const tbody = document.getElementById('scheduleTableBody');
+            const foundConflicts = detectConflicts();
             
-            tbody.innerHTML = '';
-            let visibleCount = 0;
+            // עדכון חלונית התראות
+            const conflictPanel = document.getElementById('conflictPanel');
+            const conflictList = document.getElementById('conflictList');
+            const conflictBadge = document.getElementById('conflictBadge');
+            
+            if (foundConflicts.length > 0) {
+                conflictPanel.classList.remove('hidden');
+                conflictBadge.classList.remove('hidden');
+                conflictList.innerHTML = foundConflicts.map(c => 
+                    `<li><b>${c.name}</b> משובץ ביום <b>${c.day}</b> ב-${c.stations.length} תחנות במקביל (${c.stations.join(', ')})</li>`
+                ).join('');
+            } else {
+                conflictPanel.classList.add('hidden');
+                conflictBadge.classList.add('hidden');
+            }
 
+            tbody.innerHTML = '';
             Object.entries(sectors).forEach(([sectorName, stations]) => {
                 if (sectorTerm !== 'all' && sectorTerm !== sectorName) return;
 
                 stations.forEach(station => {
                     const assignments = allAssignments[station];
-                    
-                    // בדיקה אם השורה צריכה להופיע
-                    const stationMatches = station.toLowerCase().includes(searchTerm);
-                    const anyControllerMatches = assignments.some(a => a && (a.name.toLowerCase().includes(searchTerm) || ctrlTerm === 'all' || a.name === ctrlTerm));
-                    
-                    if (!stationMatches && !anyControllerMatches) return;
-                    if (ctrlTerm !== 'all' && !assignments.some(a => a && a.name === ctrlTerm)) return;
+                    if (!station.toLowerCase().includes(searchTerm) && !assignments.some(a => a && a.name.toLowerCase().includes(searchTerm))) return;
 
-                    visibleCount++;
                     let rowHtml = `<tr class="border-b border-slate-100 hover:bg-slate-50">
                         <td class="p-3 sticky-col text-xs font-bold text-slate-700 shadow-sm">${station}</td>`;
 
-                    assignments.forEach(a => {
+                    assignments.forEach((a, dIdx) => {
                         let content = '<div class="text-slate-200 text-center">--</div>';
                         if (a) {
-                            // אם סיננו לפי בקר ספציפי, נציג רק אותו בתאים
-                            const showThis = (ctrlTerm === 'all' || a.name === ctrlTerm) && (searchTerm === '' || a.name.includes(searchTerm) || station.includes(searchTerm));
+                            // בדיקה אם הבקר הספציפי הזה ביום הזה נמצא בהתנגשות
+                            const hasConflict = foundConflicts.some(c => c.name === a.name && c.day === ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "מוצ\"ש"][dIdx]);
                             
-                            if (showThis) {
-                                content = `
-                                    <div class="p-2 rounded bg-white border border-slate-200 shadow-sm text-[10px] ${a.alert ? 'border-r-4 border-r-red-500' : ''}">
-                                        <div class="font-bold text-blue-800">${a.name}</div>
-                                        <div class="text-slate-500">${a.hours}</div>
-                                        <div class="mt-1 text-slate-400 italic">${a.mission}</div>
-                                    </div>`;
-                            }
+                            content = `
+                                <div class="p-2 rounded bg-white border border-slate-200 shadow-sm text-[10px] 
+                                    ${hasConflict ? 'border-r-4 border-r-red-600 conflict-glow bg-red-50' : ''} 
+                                    ${a.alert ? 'border-l-4 border-l-orange-400' : ''}">
+                                    <div class="font-bold ${hasConflict ? 'text-red-700' : 'text-blue-800'}">${a.name}</div>
+                                    <div class="text-slate-500">${a.hours}</div>
+                                    <div class="mt-1 text-slate-400 italic">${a.mission}</div>
+                                    ${hasConflict ? '<div class="mt-1 text-red-600 font-bold uppercase text-[8px]">כפל שיבוץ!</div>' : ''}
+                                </div>`;
                         }
                         rowHtml += `<td class="p-1 border-r border-slate-50 w-32">${content}</td>`;
                     });
-                    
-                    rowHtml += `</tr>`;
-                    tbody.innerHTML += rowHtml;
+                    tbody.innerHTML += rowHtml + `</tr>`;
                 });
             });
-            document.getElementById('resultsCount').innerText = `מציג ${visibleCount} תחנות`;
         }
 
         function updateStats() {
@@ -179,7 +215,7 @@
             controllers.forEach(c => {
                 const count = Object.values(allAssignments).flat().filter(a => a && a.name === c).length;
                 list.innerHTML += `
-                    <div class="text-sm p-2 rounded hover:bg-slate-50 cursor-pointer" onclick="filterByCtrl('${c}')">
+                    <div class="text-sm p-2 rounded border border-transparent hover:border-slate-200 hover:bg-slate-50">
                         <div class="flex justify-between">
                             <span class="font-medium">${c}</span>
                             <span class="text-blue-600 font-bold">${count} משמ'</span>
@@ -189,12 +225,7 @@
             });
         }
 
-        function filterByCtrl(name) {
-            document.getElementById('controllerFilter').value = name;
-            applyFilters();
-        }
-
-        window.onload = init;
+        window.onload = () => generateNewData();
     </script>
 </body>
 </html>
