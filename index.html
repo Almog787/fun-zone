@@ -2,244 +2,409 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>מערכת בקרה - גרסה יציבה (V2.5)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LightRail Command - מערכת ניהול בקרה</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
-        body { font-family: 'Heebo', sans-serif; transition: background 0.3s; }
-        .sticky-col { position: sticky; right: 0; background: white; z-index: 20; border-left: 2px solid #e2e8f0; }
-        .empty-cell { background-color: #f8fafc; color: #94a3b8; font-size: 0.75rem; text-align: center; }
-        .print-only { display: none; }
-        @media print {
-            .no-print { display: none; }
-            .print-only { display: block; }
-            .sticky-col { position: static; background: transparent; }
-            body { background: white; p: 0; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Heebo:wght@400;700&display=swap');
+        
+        body { font-family: 'Assistant', sans-serif; background-color: #f3f4f6; }
+        
+        /* עיצוב גלילה */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .sticky-col { position: sticky; right: 0; background: white; z-index: 30; box-shadow: -2px 0 5px rgba(0,0,0,0.05); }
+        .sticky-header { position: sticky; top: 0; z-index: 40; }
+        
+        /* אנימציות */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* סגנונות למשימות */
+        .mission-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; }
+        .mission-on-board { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .mission-station { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .mission-car { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .mission-safety { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+        .sector-indicator { width: 4px; height: 100%; position: absolute; right: 0; top: 0; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900">
+<body class="text-slate-800 h-screen flex overflow-hidden">
 
-    <div class="flex h-screen overflow-hidden no-print">
-        
-        <!-- Sidebar -->
-        <aside class="w-80 bg-white border-l shadow-2xl p-6 overflow-y-auto flex flex-col">
-            <div class="flex-1">
-                <h2 class="text-xl font-bold mb-6 border-b pb-2 flex justify-between items-center">
-                    <span>מכסות בקרים</span>
-                    <span id="totalShifts" class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500"></span>
-                </h2>
-                <div id="controllerStats" class="space-y-3"></div>
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-50">
+        <div class="p-6 border-b border-slate-700 flex items-center gap-3">
+            <div class="w-8 h-8 bg-red-600 rounded flex items-center justify-center font-bold text-lg">R</div>
+            <div>
+                <h1 class="font-bold text-lg tracking-wide">Red Line Ops</h1>
+                <p class="text-xs text-slate-400">מערכת שיבוץ וניהול</p>
             </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto p-4 space-y-2">
+            <div class="text-xs font-bold text-slate-500 uppercase mb-2 mt-2">ראשי</div>
+            <button class="w-full text-right px-4 py-3 bg-slate-800 rounded-lg text-white font-medium flex items-center gap-3 border-l-4 border-red-500">
+                <i class="fa-solid fa-calendar-days w-5"></i> לוח שיבוץ
+            </button>
+            <button class="w-full text-right px-4 py-3 hover:bg-slate-800 rounded-lg text-slate-300 transition flex items-center gap-3">
+                <i class="fa-solid fa-users w-5"></i> מצבת בקרים
+            </button>
             
-            <div class="mt-6 pt-6 border-t border-slate-100 space-y-2">
-                <button onclick="window.print()" class="w-full bg-slate-800 text-white py-2 rounded-lg font-bold hover:bg-slate-700 transition">הדפס סידור</button>
-                <button onclick="clearSystemData()" class="w-full text-red-500 text-xs hover:underline">אפס מערכת ומחק זיכרון</button>
+            <div class="text-xs font-bold text-slate-500 uppercase mb-2 mt-6">פעולות</div>
+            <button onclick="generateSchedule()" class="w-full text-right px-4 py-3 hover:bg-blue-900 text-blue-300 rounded-lg transition flex items-center gap-3">
+                <i class="fa-solid fa-wand-magic-sparkles w-5"></i> צור סידור אוטומטי
+            </button>
+            <button onclick="exportToCSV()" class="w-full text-right px-4 py-3 hover:bg-emerald-900 text-emerald-300 rounded-lg transition flex items-center gap-3">
+                <i class="fa-solid fa-file-excel w-5"></i> ייצוא לאקסל
+            </button>
+            <button onclick="clearAll()" class="w-full text-right px-4 py-3 hover:bg-red-900 text-red-300 rounded-lg transition flex items-center gap-3">
+                <i class="fa-solid fa-trash w-5"></i> איפוס מערכת
+            </button>
+        </nav>
+
+        <div class="p-4 bg-slate-800 text-xs text-center text-slate-400 border-t border-slate-700">
+            גרסה 3.0 Pro | <span id="currentDate"></span>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col relative overflow-hidden">
+        
+        <!-- Top Stats Bar -->
+        <header class="bg-white shadow-sm border-b px-8 py-4 flex justify-between items-center z-40">
+            <div class="flex gap-6">
+                <div class="text-center">
+                    <div class="text-xs text-slate-500 font-bold uppercase">סה"כ משמרות</div>
+                    <div id="statTotalShifts" class="text-xl font-bold text-slate-800">0</div>
+                </div>
+                <div class="text-center border-r border-slate-100 pr-6">
+                    <div class="text-xs text-slate-500 font-bold uppercase">אחוז איוש</div>
+                    <div id="statCoverage" class="text-xl font-bold text-blue-600">0%</div>
+                </div>
+                <div class="text-center border-r border-slate-100 pr-6">
+                    <div class="text-xs text-slate-500 font-bold uppercase">חריגות</div>
+                    <div id="statAlerts" class="text-xl font-bold text-red-500">0</div>
+                </div>
             </div>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-auto p-6 flex flex-col">
-            <header class="mb-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h1 class="text-3xl font-bold text-slate-800">סידור בקרה שבועי</h1>
-                        <p id="dateRange" class="text-slate-500 text-sm font-medium"></p>
-                    </div>
-                    <div class="flex gap-3">
-                        <div id="healthIndicator" class="px-4 py-2 rounded-lg text-sm font-bold border flex items-center gap-2"></div>
-                        <button onclick="generateStableSchedule()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg transition transform hover:scale-105 active:scale-95">
-                            ייצר סידור אופטימלי
-                        </button>
-                    </div>
+            <!-- Filters -->
+            <div class="flex gap-3">
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute top-3 right-3 text-slate-400"></i>
+                    <input type="text" id="search" oninput="renderTable()" placeholder="חיפוש בלוח..." class="pl-4 pr-10 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
                 </div>
+                <select id="sectorFilter" onchange="renderTable()" class="py-2 px-4 border rounded-lg text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">כל הגזרות</option>
+                    <option value="פתח תקווה">גזרת פתח תקווה</option>
+                    <option value="ז'בוטינסקי">ציר ז'בוטינסקי</option>
+                    <option value="תל אביב">תל אביב מרכז</option>
+                    <option value="יפו">גזרת יפו</option>
+                    <option value="בת ים">גזרת בת ים</option>
+                </select>
+            </div>
+        </header>
 
-                <!-- Control Bar -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border flex flex-wrap gap-4 items-end">
-                    <div class="flex-1 min-w-[200px]">
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">חיפוש מהיר</label>
-                        <input type="text" id="searchInput" oninput="applyFilters()" placeholder="חפש תחנה או בקר..." class="w-full border-slate-200 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div class="w-48">
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">גזרה</label>
-                        <select id="sectorFilter" onchange="applyFilters()" class="w-full border-slate-200 border rounded-lg px-3 py-2 outline-none">
-                            <option value="all">כל התחנות</option>
-                            <option value="פתח תקווה">גזרת פתח תקווה</option>
-                            <option value="ז'בוטינסקי">גזרת ז'בוטינסקי</option>
-                            <option value="תל אביב">גזרת תל אביב</option>
-                            <option value="יפו">גזרת יפו</option>
-                            <option value="בת ים">גזרת בת ים</option>
-                        </select>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Table Container -->
-            <div class="flex-1 bg-white rounded-2xl shadow-sm border overflow-hidden relative">
+        <!-- The Matrix (Scrollable) -->
+        <div class="flex-1 overflow-auto bg-slate-50 p-6">
+            <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
                 <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-slate-800 text-white text-[11px] uppercase">
-                            <th class="p-4 sticky-col text-right w-48 shadow-lg">תחנה \ יום</th>
-                            <th class="p-4 border-r border-slate-700">ראשון</th>
-                            <th class="p-4 border-r border-slate-700">שני</th>
-                            <th class="p-4 border-r border-slate-700">שלישי</th>
-                            <th class="p-4 border-r border-slate-700">רביעי</th>
-                            <th class="p-4 border-r border-slate-700">חמישי</th>
-                            <th class="p-4 border-r border-slate-700 bg-blue-900">שישי</th>
-                            <th class="p-4 border-r border-slate-700 bg-indigo-900">מוצ"ש</th>
+                    <thead class="sticky-header">
+                        <tr class="bg-slate-800 text-white text-xs uppercase tracking-wider shadow-md">
+                            <th class="p-4 sticky-col text-right w-64 z-50 bg-slate-800 border-l border-slate-600">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-train-subway text-slate-400"></i> תחנה / גזרה
+                                </div>
+                            </th>
+                            <th class="p-4 border-r border-slate-700 w-48">ראשון</th>
+                            <th class="p-4 border-r border-slate-700 w-48">שני</th>
+                            <th class="p-4 border-r border-slate-700 w-48">שלישי</th>
+                            <th class="p-4 border-r border-slate-700 w-48">רביעי</th>
+                            <th class="p-4 border-r border-slate-700 w-48">חמישי</th>
+                            <th class="p-4 border-r border-slate-700 w-48 bg-blue-900/50">שישי</th>
+                            <th class="p-4 border-r border-slate-700 w-48 bg-indigo-900/50">מוצ"ש</th>
                         </tr>
                     </thead>
-                    <tbody id="scheduleTableBody" class="text-sm"></tbody>
+                    <tbody id="scheduleBody" class="text-sm divide-y divide-slate-100"></tbody>
                 </table>
             </div>
-        </main>
+        </div>
+    </main>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black/50 z-[100] hidden items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-96 p-6 transform transition-all scale-100">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-bold text-slate-800">עריכת משמרת</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark fa-lg"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">בקר</label>
+                    <select id="modalController" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">משימה</label>
+                    <select id="modalMission" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="On-Board">On-Board</option>
+                        <option value="תחנות">תחנות</option>
+                        <option value="קרונות">קרונות</option>
+                        <option value="בטיחות">בטיחות</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">שעות</label>
+                        <input type="text" id="modalHours" class="w-full border p-2 rounded text-center">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-6 pt-4 border-t">
+                <button onclick="saveShiftChange()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-bold transition">שמור שינויים</button>
+                <button onclick="deleteShift()" class="px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded font-bold transition"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
     </div>
 
     <script>
-        const STATIONS = {
-            "פתח תקווה": ["תחנה מרכזית פתח תקווה", "פינסקר", "בלינסון", "דנקנר", "שנקר", "שחם"],
-            "ז'בוטינסקי": ["גשר אם המושבות", "אהרונוביץ'", "בן גוריון", "ביאליק", "אבא הלל"],
-            "תל אביב": ["ארלוזורוב", "שאול המלך", "יהודית", "קרליבך", "אלנבי", "אליפלט"],
-            "יפו": ["שלמה", "אצטדיון בלומפילד", "עזה", "ארליך", "איסקוב", "הבעש\"ט", "מחרוזת"],
-            "בת ים": ["העצמאות", "רוטשילד", "ז'בוטינסקי", "בלפור", "בנימין", "יוספטל", "כ\"ט בנובמבר", "העמל", "הקוממיות", "פארק דרום"]
+        // --- נתונים ---
+        const SECTORS = {
+            "פתח תקווה": { stations: ["תחנה מרכזית פתח תקווה", "פינסקר", "בלינסון", "דנקנר", "שנקר", "שחם"], color: "#3b82f6" },
+            "ז'בוטינסקי": { stations: ["גשר אם המושבות", "אהרונוביץ'", "בן גוריון", "ביאליק", "אבא הלל"], color: "#8b5cf6" },
+            "תל אביב": { stations: ["ארלוזורוב", "שאול המלך", "יהודית", "קרליבך", "אלנבי", "אליפלט"], color: "#f59e0b" },
+            "יפו": { stations: ["שלמה", "אצטדיון בלומפילד", "עזה", "ארליך", "איסקוב", "הבעש\"ט", "מחרוזת"], color: "#10b981" },
+            "בת ים": { stations: ["העצמאות", "רוטשילד", "ז'בוטינסקי", "בלפור", "בנימין", "יוספטל", "כ\"ט בנובמבר", "העמל", "הקוממיות", "פארק דרום"], color: "#ef4444" }
         };
 
-        const CONTROLLERS = ["אורי מייזלר", "אינה טימופייב", "אלתי קראו", "בוריס דולציגר", "בתיה אביה", "דוד סייג", "הרצל שגב", "יוני יוסף", "משה אליהו", "ערן ניצן", "רון טוב", "אברהם גברילביץ'", "יוני ניסן", "גדי בן אור", "בתיה קראו"];
-        const MISSIONS = ["On-Board", "תחנות", "קרונות", "בטיחות"];
+        const CONTROLLERS = ["אורי מייזלר", "אינה טימופייב", "אלתי קראו", "בוריס דולציגר", "בתיה אביה", "דוד סייג", "הרצל שגב", "יוני יוסף", "משה אליהו", "ערן ניצן", "רון טוב", "אברהם גברילביץ'", "יוני ניסן", "גדי בן אור"];
         
-        let assignments = {};
+        // State
+        let scheduleData = {}; 
+        let currentEdit = null; // { station, day }
 
-        // ייצור סידור יציב עם חוקי הוגנות ומנוחה
-        function generateStableSchedule() {
-            assignments = {};
-            const stationsList = Object.values(STATIONS).flat();
-            stationsList.forEach(s => assignments[s] = Array(7).fill(null));
+        // --- אתחול ---
+        window.onload = () => {
+            document.getElementById('currentDate').innerText = new Date().toLocaleDateString('he-IL');
+            
+            // מילוי רשימת בקרים במודל
+            const modalSelect = document.getElementById('modalController');
+            CONTROLLERS.sort().forEach(c => {
+                modalSelect.innerHTML += `<option value="${c}">${c}</option>`;
+            });
 
-            // מעקב משמרות שבועי לאיזון עומסים
-            let weeklyStats = {};
-            CONTROLLERS.forEach(c => weeklyStats[c] = 0);
+            loadData();
+        };
 
-            for (let day = 0; day < 7; day++) {
-                // שלב 1: סינון בקרים לפי חוק המנוחה (11 שעות בין מוצ"ש לראשון)
-                // במקרה שלנו - הגבלת משמרות רצופות אם נדרש
+        function loadData() {
+            const saved = localStorage.getItem('rail_schedule_v3');
+            if(saved) {
+                scheduleData = JSON.parse(saved);
+            } else {
+                generateSchedule(); // יצירה ראשונית אם אין נתונים
+            }
+            renderTable();
+        }
+
+        // --- לוגיקה עסקית ---
+        function generateSchedule() {
+            scheduleData = {};
+            const stationsList = Object.values(SECTORS).flatMap(s => s.stations);
+            
+            // איפוס
+            stationsList.forEach(s => scheduleData[s] = Array(7).fill(null));
+
+            // אלגוריתם שיבוץ פשוט לסימולציה
+            for(let d=0; d<7; d++) {
+                let pool = [...CONTROLLERS].sort(() => Math.random() - 0.5);
                 
-                // שלב 2: מיון הבקרים לפי כמות המשמרות שכבר עשו (כדי לתת למי שעבד הכי פחות)
-                let availablePool = [...CONTROLLERS].sort((a, b) => weeklyStats[a] - weeklyStats[b]);
-
-                // שלב 3: איוש תחנות (מקסימום 12 תחנות ביום כדי לשמור על רזרבות וכוח אדם)
-                let dayStations = [...stationsList].sort(() => Math.random() - 0.5).slice(0, 12);
-
-                dayStations.forEach(station => {
-                    if (availablePool.length > 0) {
-                        // בוחרים את הבקר עם הכי פחות שעות
-                        const controller = availablePool.shift(); 
+                stationsList.forEach(station => {
+                    // סיכוי של 40% לשיבוץ בתחנה ספציפית ביום נתון
+                    if(Math.random() > 0.6 && pool.length > 0) {
+                        const ctrl = pool.pop();
+                        const mission = ["On-Board", "תחנות", "קרונות", "בטיחות"][Math.floor(Math.random()*4)];
                         
-                        assignments[station][day] = {
-                            name: controller,
-                            mission: MISSIONS[Math.floor(Math.random() * MISSIONS.length)],
-                            hours: day === 5 ? "06:00-14:30" : (day === 6 ? "19:00-00:30" : "07:30-17:00"),
+                        scheduleData[station][d] = {
+                            name: ctrl,
+                            mission: mission,
+                            hours: d===5 ? "06:00-14:30" : (d===6 ? "19:00-00:00" : "07:00-16:00")
                         };
-                        weeklyStats[controller]++;
                     }
                 });
             }
-
-            saveAndRender();
+            saveData();
+            renderTable();
         }
 
-        function saveAndRender() {
-            localStorage.setItem('light_rail_schedule', JSON.stringify(assignments));
-            applyFilters();
-            updateStatsUI();
-            checkHealth();
-        }
-
-        function applyFilters() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const sector = document.getElementById('sectorFilter').value;
-            const tbody = document.getElementById('scheduleTableBody');
+        // --- רינדור (תצוגה) ---
+        function renderTable() {
+            const tbody = document.getElementById('scheduleBody');
+            const filterText = document.getElementById('search').value.toLowerCase();
+            const filterSector = document.getElementById('sectorFilter').value;
+            
             tbody.innerHTML = '';
+            let totalShifts = 0;
+            let occupiedSlots = 0;
+            let totalSlots = 0;
 
-            Object.entries(STATIONS).forEach(([secName, stations]) => {
-                if (sector !== 'all' && sector !== secName) return;
+            Object.entries(SECTORS).forEach(([sectorName, data]) => {
+                if(filterSector !== 'all' && filterSector !== sectorName) return;
 
-                stations.forEach(station => {
-                    const data = assignments[station];
-                    const isMatch = station.toLowerCase().includes(query) || data.some(a => a && a.name.toLowerCase().includes(query));
-                    if (!isMatch) return;
-
-                    let row = `<tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td class="p-3 sticky-col text-xs font-bold text-slate-700 shadow-sm border-l">${station}</td>`;
+                data.stations.forEach(station => {
+                    // סינון טקסטואלי
+                    const stationData = scheduleData[station];
+                    const rowMatch = station.toLowerCase().includes(filterText) || 
+                                     stationData.some(d => d && d.name.toLowerCase().includes(filterText));
                     
-                    data.forEach(a => {
-                        if (a) {
-                            row += `<td class="p-1 border-r border-slate-50 w-32">
-                                <div class="p-2 rounded bg-white border border-slate-200 shadow-sm text-[10px] border-r-4 border-r-blue-500">
-                                    <div class="font-bold text-blue-900">${a.name}</div>
-                                    <div class="text-slate-500 font-medium">${a.hours}</div>
-                                    <div class="mt-1 text-slate-400 italic">${a.mission}</div>
+                    if(!rowMatch) return;
+
+                    let tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition group";
+                    
+                    // תא שם התחנה
+                    tr.innerHTML = `
+                        <td class="p-3 sticky-col bg-white border-l border-slate-100 shadow-sm z-30">
+                            <div class="sector-indicator" style="background-color: ${data.color}"></div>
+                            <div class="font-bold text-slate-700 text-sm">${station}</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider">${sectorName}</div>
+                        </td>
+                    `;
+
+                    // תאים לימים
+                    stationData.forEach((shift, dayIdx) => {
+                        totalSlots++;
+                        let td = document.createElement('td');
+                        td.className = "p-2 border-r border-slate-100 align-top h-24 cursor-pointer hover:bg-blue-50 transition duration-150";
+                        td.onclick = () => openEditModal(station, dayIdx);
+
+                        if(shift) {
+                            occupiedSlots++;
+                            totalShifts++;
+                            
+                            // קביעת צבע לפי משימה
+                            let missionClass = "mission-station";
+                            if(shift.mission === 'On-Board') missionClass = "mission-on-board";
+                            if(shift.mission === 'קרונות') missionClass = "mission-car";
+                            if(shift.mission === 'בטיחות') missionClass = "mission-safety";
+
+                            td.innerHTML = `
+                                <div class="fade-in bg-white p-2 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition h-full flex flex-col justify-between">
+                                    <div>
+                                        <div class="font-bold text-slate-800 text-xs mb-1 truncate">${shift.name}</div>
+                                        <div class="flex items-center gap-1 text-[10px] text-slate-500">
+                                            <i class="fa-regular fa-clock"></i> ${shift.hours}
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="mission-badge ${missionClass}">${shift.mission}</span>
+                                    </div>
                                 </div>
-                            </td>`;
+                            `;
                         } else {
-                            row += `<td class="p-1 border-r border-slate-50 empty-cell">---</td>`;
+                            td.innerHTML = `<div class="h-full flex items-center justify-center text-slate-200 text-lg opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-plus"></i></div>`;
                         }
+                        tr.appendChild(td);
                     });
-                    tbody.innerHTML += row + `</tr>`;
+                    tbody.appendChild(tr);
                 });
             });
+
+            // עדכון סטטיסטיקות
+            document.getElementById('statTotalShifts').innerText = totalShifts;
+            document.getElementById('statCoverage').innerText = Math.round((occupiedSlots/totalSlots)*100) + "%";
         }
 
-        function updateStatsUI() {
-            const list = document.getElementById('controllerStats');
-            list.innerHTML = '';
-            let total = 0;
-            let counts = {};
-            CONTROLLERS.forEach(c => counts[c] = 0);
+        // --- עריכה ומודל ---
+        function openEditModal(station, day) {
+            currentEdit = { station, day };
+            const shift = scheduleData[station][day];
             
-            Object.values(assignments).flat().forEach(a => { if(a) { counts[a.name]++; total++; }});
-
-            CONTROLLERS.sort((a,b) => counts[b] - counts[a]).forEach(c => {
-                const color = counts[c] > 5 ? 'text-red-600 font-bold' : 'text-slate-600';
-                list.innerHTML += `<div class="flex justify-between text-sm p-2 bg-slate-50 rounded">
-                    <span class="${color}">${c}</span>
-                    <span class="font-bold">${counts[c]}</span>
-                </div>`;
-            });
-            document.getElementById('totalShifts').innerText = `סה"כ ${total} משמרות השבוע`;
-        }
-
-        function checkHealth() {
-            const el = document.getElementById('healthIndicator');
-            const stationsCount = Object.values(STATIONS).flat().length;
-            const assignedCount = Object.values(assignments).flat().filter(a => a).length;
-            
-            if (assignedCount > 0) {
-                el.className = "px-4 py-2 rounded-lg text-sm font-bold border bg-green-50 border-green-200 text-green-700";
-                el.innerHTML = "✓ סידור עבר ולידציה - אין חריגות";
+            if(shift) {
+                document.getElementById('modalController').value = shift.name;
+                document.getElementById('modalMission').value = shift.mission;
+                document.getElementById('modalHours').value = shift.hours;
             } else {
-                el.className = "px-4 py-2 rounded-lg text-sm font-bold border bg-yellow-50 border-yellow-200 text-yellow-700";
-                el.innerHTML = "! ממתין לייצור סידור";
+                // ערכי ברירת מחדל למשמרת חדשה
+                document.getElementById('modalController').value = CONTROLLERS[0];
+                document.getElementById('modalMission').value = "תחנות";
+                document.getElementById('modalHours').value = "07:00-16:00";
             }
+            
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
         }
 
-        function clearSystemData() {
-            if(confirm("האם אתה בטוח שברצונך למחוק את כל נתוני הסידור?")) {
-                localStorage.removeItem('light_rail_schedule');
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+            currentEdit = null;
+        }
+
+        function saveShiftChange() {
+            if(!currentEdit) return;
+            
+            const newShift = {
+                name: document.getElementById('modalController').value,
+                mission: document.getElementById('modalMission').value,
+                hours: document.getElementById('modalHours').value
+            };
+
+            scheduleData[currentEdit.station][currentEdit.day] = newShift;
+            saveData();
+            renderTable();
+            closeModal();
+        }
+
+        function deleteShift() {
+            if(!currentEdit) return;
+            scheduleData[currentEdit.station][currentEdit.day] = null;
+            saveData();
+            renderTable();
+            closeModal();
+        }
+
+        // --- כלים וניהול ---
+        function saveData() {
+            localStorage.setItem('rail_schedule_v3', JSON.stringify(scheduleData));
+        }
+
+        function clearAll() {
+            if(confirm('האם אתה בטוח שברצונך למחוק הכל?')) {
+                localStorage.removeItem('rail_schedule_v3');
                 location.reload();
             }
         }
 
-        window.onload = () => {
-            const saved = localStorage.getItem('light_rail_schedule');
-            if (saved) {
-                assignments = JSON.parse(saved);
-                applyFilters();
-                updateStatsUI();
-                checkHealth();
-            } else {
-                generateStableSchedule();
-            }
-        };
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for Hebrew support
+            csvContent += "תחנה,גזרה,יום,בקר,משימה,שעות\n";
+            
+            const days = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "מוצ\"ש"];
+
+            Object.entries(SECTORS).forEach(([sector, data]) => {
+                data.stations.forEach(station => {
+                    const shifts = scheduleData[station];
+                    shifts.forEach((shift, dIdx) => {
+                        if(shift) {
+                            csvContent += `${station},${sector},${days[dIdx]},${shift.name},${shift.mission},${shift.hours}\n`;
+                        }
+                    });
+                });
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `sidur_avoda_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
