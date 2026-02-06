@@ -3,298 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R-Light Enterprise - JSON Core</title>
+    <title>R-Light Pro Enterprise - JSON Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap');
-        
-        :root { --bg-body: #f8fafc; --bg-card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
-        body { font-family: 'Assistant', sans-serif; background: var(--bg-body); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: 'Assistant', sans-serif; background: #f1f5f9; color: #1e293b; overflow: hidden; height: 100vh; }
         
         /* Layout */
-        .main-layout { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 260px; background: #1e293b; color: white; display: flex; flex-direction: column; }
-        .content { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
+        .app-grid { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+        .sidebar { background: #0f172a; color: white; padding: 20px; display: flex; flex-direction: column; }
+        .main-content { overflow-y: auto; padding: 25px; position: relative; }
         
-        /* Components */
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn { padding: 8px 16px; border-radius: 6px; font-weight: bold; transition: 0.2s; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-primary { background: #2563eb; color: white; } .btn-primary:hover { background: #1d4ed8; }
-        .btn-danger { background: #dc2626; color: white; } .btn-danger:hover { background: #b91c1c; }
-        .btn-success { background: #16a34a; color: white; }
+        /* Gantt Component */
+        .gantt-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); overflow: hidden; }
+        .gantt-header { display: flex; background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+        .gantt-label-col { width: 160px; flex-shrink: 0; background: #f8fafc; border-left: 2px solid #e2e8f0; padding: 10px; font-weight: 800; position: sticky; right: 0; z-index: 10; }
+        .gantt-timeline { flex-grow: 1; position: relative; min-width: 1200px; height: 100%; display: flex; }
+        .hour-mark { flex: 1; border-right: 1px solid #f1f5f9; text-align: center; font-size: 10px; color: #94a3b8; padding-top: 5px; }
         
-        /* Gantt */
-        .gantt-wrapper { overflow-x: auto; background: white; border: 1px solid var(--border); border-radius: 8px; }
-        .gantt-row { display: flex; height: 50px; border-bottom: 1px solid #f1f5f9; position: relative; }
-        .gantt-label { width: 150px; flex-shrink: 0; border-left: 2px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; padding-right: 10px; font-weight: bold; position: sticky; right: 0; z-index: 10; }
-        .gantt-timeline { flex: 1; min-width: 1000px; position: relative; background: repeating-linear-gradient(90deg, transparent, transparent 59px, #f1f5f9 60px); }
-        
+        .gantt-row { display: flex; height: 55px; border-bottom: 1px solid #f1f5f9; position: relative; align-items: center; }
         .task-block {
-            position: absolute; height: 70%; top: 15%; border-radius: 4px; font-size: 11px;
-            color: white; display: flex; align-items: center; justify-content: center; cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 1; overflow: hidden; white-space: nowrap;
-            transition: transform 0.1s;
+            position: absolute; height: 70%; top: 15%; border-radius: 6px; font-size: 11px;
+            color: white; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.2s; z-index: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden; padding: 0 4px;
         }
-        .task-block:hover { transform: scale(1.02); z-index: 20; }
-        .task-block.violation { border: 2px solid #ef4444; animation: pulse 1.5s infinite; }
+        .task-block:hover { transform: scale(1.03); z-index: 20; filter: brightness(1.1); }
         
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        /* Violation Alert */
+        .violation { 
+            background: #ef4444 !important; 
+            border: 2px solid white; 
+            animation: pulse 1s infinite; 
+            z-index: 30 !important;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; items-center; z-index: 100; }
-        .modal-content { background: white; padding: 24px; border-radius: 12px; width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        
+        /* Status Colors */
+        .bg-insp { background: #2563eb; }
+        .bg-travel { background: #f59e0b; }
+        .bg-anchor { background: #9333ea; }
+        .bg-admin { background: #64748b; }
+
         /* JSON Editor */
-        #json-editor { width: 100%; height: 400px; font-family: monospace; font-size: 12px; background: #1e293b; color: #a5b4fc; padding: 10px; border-radius: 8px; }
-
-        /* Colors */
-        .bg-insp { background: #3b82f6; } .bg-travel { background: #f59e0b; } .bg-anchor { background: #8b5cf6; } .bg-admin { background: #64748b; }
+        #json-display { width: 100%; height: calc(100vh - 250px); font-family: monospace; background: #1e293b; color: #38bdf8; padding: 15px; border-radius: 8px; font-size: 12px; resize: none; border: none; outline: none; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
 
-    <!-- Sidebar -->
-    <div class="main-layout">
-        <aside class="sidebar p-4">
-            <div class="text-2xl font-black italic mb-8 flex items-center gap-2">
-                <i class="fas fa-subway text-blue-400"></i> R-LIGHT <span class="text-xs bg-blue-600 px-1 rounded">JSON</span>
+    <div class="app-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="text-2xl font-black mb-10 flex items-center gap-2 italic">
+                <i class="fas fa-microchip text-blue-500"></i> R-LIGHT <span class="text-blue-500 text-sm">PRO</span>
             </div>
             
-            <nav class="space-y-2 flex-1">
-                <button onclick="showPage('dashboard')" class="w-full text-right p-3 rounded hover:bg-slate-700 font-bold"><i class="fas fa-chart-pie w-6"></i> דאשבורד</button>
-                <button onclick="showPage('gantt')" class="w-full text-right p-3 rounded hover:bg-slate-700 font-bold"><i class="fas fa-stream w-6"></i> גאנט ועריכה</button>
-                <button onclick="showPage('json')" class="w-full text-right p-3 rounded hover:bg-slate-700 font-bold"><i class="fas fa-code w-6"></i> קובץ נתונים (JSON)</button>
+            <nav class="space-y-3 flex-1">
+                <button onclick="switchTab('dashboard')" class="w-full text-right p-3 rounded hover:bg-slate-800 flex items-center gap-3 transition">
+                    <i class="fas fa-th-large w-5 text-slate-400"></i> לוח בקרה
+                </button>
+                <button onclick="switchTab('gantt')" class="w-full text-right p-3 rounded hover:bg-slate-800 flex items-center gap-3 transition">
+                    <i class="fas fa-stream w-5 text-slate-400"></i> עריכה וגאנט
+                </button>
+                <button onclick="switchTab('json')" class="w-full text-right p-3 rounded hover:bg-slate-800 flex items-center gap-3 transition">
+                    <i class="fas fa-code w-5 text-slate-400"></i> קובץ JSON
+                </button>
             </nav>
 
-            <div class="mt-auto pt-4 border-t border-slate-700">
-                <div class="text-xs text-slate-400 mb-2">סטטוס סנכרון:</div>
-                <div id="sync-status" class="flex items-center gap-2 text-green-400 text-sm font-bold">
-                    <i class="fas fa-check-circle"></i> מסונכרן
+            <div class="bg-slate-800 p-4 rounded-xl">
+                <div class="text-[10px] uppercase font-bold text-slate-500 mb-2">סטטוס מנוע חוקים</div>
+                <div id="validator-status" class="text-sm font-bold text-green-400">
+                    <i class="fas fa-check-circle"></i> לו"ז תקין
                 </div>
             </div>
         </aside>
 
         <!-- Main Content -->
-        <main class="content">
+        <main class="main-content">
             
-            <!-- PAGE: DASHBOARD -->
-            <div id="page-dashboard" class="space-y-6">
+            <!-- Dashboard Page -->
+            <div id="tab-dashboard" class="tab-content active space-y-6">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-bold">לוח בקרה ראשי</h1>
-                    <div class="flex gap-2">
-                        <input type="date" id="start-date" class="border p-2 rounded bg-white">
-                        <button onclick="runScheduler()" class="btn btn-primary"><i class="fas fa-magic"></i> צור שיבוץ אוטומטי</button>
+                    <h1 class="text-3xl font-extrabold text-slate-800">דאשבורד ניהול</h1>
+                    <div class="flex gap-3">
+                        <input type="date" id="start-date" class="border p-2 rounded-lg shadow-sm">
+                        <button onclick="runAutomaticScheduler()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow-lg">
+                            <i class="fas fa-magic"></i> יצירת שיבוץ אוטומטי
+                        </button>
                     </div>
                 </div>
 
-                <!-- Alerts Section -->
-                <div class="card p-4 border-r-4 border-red-500">
-                    <h3 class="font-bold text-lg mb-2 text-red-600"><i class="fas fa-exclamation-triangle"></i> חריגות והתראות (Live)</h3>
-                    <div id="alerts-list" class="space-y-2 max-h-40 overflow-y-auto text-sm">
-                        <div class="text-gray-400 italic">המערכת תקינה.</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border-r-4 border-blue-600">
+                        <div class="text-slate-400 font-bold text-sm uppercase">משימות שובצו</div>
+                        <div class="text-4xl font-black text-slate-800" id="stat-tasks">0</div>
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="card p-6 text-center">
-                        <div class="text-4xl font-black text-blue-600" id="stat-tasks">0</div>
-                        <div class="text-gray-500 font-bold">משימות פעילות</div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border-r-4 border-purple-600">
+                        <div class="text-slate-400 font-bold text-sm uppercase">עוגנים פעילים</div>
+                        <div class="text-4xl font-black text-slate-800" id="stat-anchors">0</div>
                     </div>
-                    <div class="card p-6 text-center">
-                        <div class="text-4xl font-black text-purple-600" id="stat-anchors">0</div>
-                        <div class="text-gray-500 font-bold">עוגנים ידניים</div>
-                    </div>
-                    <div class="card p-6 text-center">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border-r-4 border-red-600">
+                        <div class="text-slate-400 font-bold text-sm uppercase">חריגות (שעות/חפיפה)</div>
                         <div class="text-4xl font-black text-red-600" id="stat-violations">0</div>
-                        <div class="text-gray-500 font-bold">חריגות נהלים</div>
+                    </div>
+                </div>
+
+                <!-- Live Violations Feed -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-lg mb-4 text-slate-700 underline decoration-red-500 underline-offset-4">פירוט חריגות בזמן אמת</h3>
+                    <div id="violation-feed" class="space-y-2 text-sm max-h-40 overflow-y-auto">
+                        <p class="text-slate-400 italic italic text-center py-4">אין חריגות במערכת...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- PAGE: GANTT -->
-            <div id="page-gantt" class="hidden space-y-4">
+            <!-- Gantt Page -->
+            <div id="tab-gantt" class="tab-content space-y-4">
                 <div class="flex justify-between items-center">
-                    <h1 class="text-2xl font-bold">עריכת משמרות</h1>
-                    <select id="gantt-day-filter" onchange="renderGantt()" class="border p-2 rounded font-bold"></select>
-                </div>
-                
-                <div class="gantt-wrapper shadow-lg">
-                    <div id="gantt-header" class="flex border-bottom bg-slate-50">
-                        <div class="gantt-label">בקר / שעה</div>
-                        <!-- Hours generated by JS -->
+                    <h2 class="text-2xl font-bold italic">עריכת לו"ז דינמית</h2>
+                    <div class="flex items-center gap-4">
+                        <label class="text-sm font-bold">יום לתצוגה:</label>
+                        <select id="gantt-day-select" onchange="renderGantt()" class="border p-2 rounded-lg bg-white shadow-sm font-bold text-blue-600"></select>
                     </div>
-                    <div id="gantt-body"></div>
                 </div>
-                <div class="text-xs text-gray-500 mt-2 flex gap-4">
-                    <span><i class="fas fa-square text-blue-500"></i> בקרה</span>
-                    <span><i class="fas fa-square text-orange-400"></i> נסיעה</span>
-                    <span><i class="fas fa-square text-purple-500"></i> עוגן</span>
-                    <span><i class="fas fa-square text-red-500"></i> חריגה (לחץ לעריכה)</span>
+
+                <div class="gantt-card">
+                    <div class="gantt-header" id="gantt-header-hours">
+                        <div class="gantt-label-col">בקר</div>
+                        <!-- Hours 06-23 generated here -->
+                    </div>
+                    <div id="gantt-rows-container"></div>
                 </div>
             </div>
 
-            <!-- PAGE: JSON -->
-            <div id="page-json" class="hidden space-y-4">
-                <h1 class="text-2xl font-bold">ניהול קובץ נתונים (DB)</h1>
-                <p class="text-sm text-gray-600">זהו הלב של המערכת. כל שינוי כאן ישפיע מיד על התצוגה וההתראות.</p>
-                
-                <div class="flex gap-2 mb-2">
-                    <button onclick="downloadJSON()" class="btn btn-success text-xs"><i class="fas fa-download"></i> הורד קובץ</button>
-                    <button onclick="document.getElementById('file-input').click()" class="btn btn-primary text-xs"><i class="fas fa-upload"></i> טען קובץ</button>
-                    <input type="file" id="file-input" class="hidden" onchange="uploadJSON(this)">
-                    <button onclick="saveJsonFromEditor()" class="btn btn-primary text-xs ml-auto"><i class="fas fa-save"></i> שמור שינויים ידניים</button>
+            <!-- JSON Editor Page -->
+            <div id="tab-json" class="tab-content space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold">Database JSON Editor</h2>
+                        <p class="text-xs text-slate-500 uppercase font-bold">ערוך את הקובץ ישירות כדי לעדכן את המערכת</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="downloadJSON()" class="bg-slate-700 text-white px-4 py-2 rounded font-bold text-xs hover:bg-slate-800 transition">
+                            <i class="fas fa-download"></i> הורד קובץ
+                        </button>
+                        <button onclick="saveJsonChanges()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold text-xs hover:bg-blue-700 transition">
+                            <i class="fas fa-save"></i> שמור שינויים
+                        </button>
+                    </div>
                 </div>
-                
-                <textarea id="json-editor" spellcheck="false"></textarea>
+                <textarea id="json-display" spellcheck="false"></textarea>
             </div>
 
         </main>
     </div>
 
-    <!-- EDIT MODAL -->
-    <div id="edit-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 class="text-xl font-bold mb-4">עריכת משימה</h3>
+    <!-- Edit Task Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[100] backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200">
+            <h3 class="text-xl font-bold mb-6 flex justify-between items-center">
+                עריכת משימה
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition text-2xl">×</button>
+            </h3>
             <input type="hidden" id="edit-id">
-            
-            <div class="space-y-3">
+            <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold">סוג משימה</label>
-                    <select id="edit-type" class="w-full border p-2 rounded">
+                    <label class="text-xs font-bold text-slate-500 uppercase block mb-1">סוג משימה</label>
+                    <select id="edit-type" class="w-full border p-2.5 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="insp">בקרת תחנה</option>
                         <option value="travel">נסיעה</option>
                         <option value="anchor">עוגן</option>
-                        <option value="admin">מנהלה</option>
+                        <option value="admin">מנהלה/סגירה</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold">מיקום</label>
-                    <select id="edit-loc" class="w-full border p-2 rounded"></select>
+                    <label class="text-xs font-bold text-slate-500 uppercase block mb-1">מיקום</label>
+                    <select id="edit-loc" class="w-full border p-2.5 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500"></select>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold">התחלה</label>
-                        <input type="time" id="edit-start" class="w-full border p-2 rounded">
+                        <label class="text-xs font-bold text-slate-500 uppercase block mb-1">זמן התחלה (HH:MM)</label>
+                        <input type="text" id="edit-start" class="w-full border p-2.5 rounded-xl bg-slate-50 text-center font-bold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold">משך (דקות)</label>
-                        <input type="number" id="edit-dur" class="w-full border p-2 rounded">
+                        <label class="text-xs font-bold text-slate-500 uppercase block mb-1">משך (דקות)</label>
+                        <input type="number" id="edit-dur" class="w-full border p-2.5 rounded-xl bg-slate-50 text-center font-bold">
                     </div>
                 </div>
             </div>
-
-            <div class="mt-6 flex justify-between">
-                <button onclick="deleteTask()" class="text-red-500 font-bold text-sm">מחק משימה</button>
-                <div class="flex gap-2">
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700">ביטול</button>
-                    <button onclick="saveTaskEdit()" class="btn btn-primary">שמור</button>
-                </div>
+            <div class="mt-8 flex gap-3">
+                <button onclick="saveTaskChanges()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">שמור שינויים</button>
+                <button onclick="deleteTask()" class="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-600 hover:text-white transition border border-red-200">מחק</button>
             </div>
         </div>
     </div>
 
     <script>
-        /**
-         * R-LIGHT ENTERPRISE ENGINE
-         * Single Source of Truth: `db` object.
-         */
-
-        // --- Initial Data Structure ---
-        const defaultDB = {
-            meta: { version: "6.0", lastUpdated: null },
-            settings: { maxShiftHours: 9, minRestHours: 8 },
+        // --- Core Data Schema (Matches Requirements) ---
+        const initialDB = {
+            meta: { version: "7.0 Pro", lastSync: null },
+            settings: { maxShiftMins: 540, minRestMins: 480 },
             inspectors: [
-                {n:"דניאל אברהם", s:"morning", base:"תמ פת"}, {n:"רונית לוי", s:"morning", base:"הקוממיות"},
-                {n:"יוסי כהן", s:"morning", base:"אליפלט"}, {n:"אלירן סבג", s:"evening", base:"תמ פת"},
-                {n:"גלית דיסטל", s:"evening", base:"הקוממיות"}, {n:"משה אשכנזי", s:"evening", base:"ארלוזורוב"}
+                {name:"דניאל אברהם", shift:"בוקר", base:"תמ פת"},
+                {name:"רונית לוי", shift:"בוקר", base:"הקוממיות"},
+                {name:"יוסי כהן", shift:"בוקר", base:"אליפלט"},
+                {name:"אלירן סבג", shift:"ערב", base:"תמ פת"},
+                {name:"משה אשכנזי", shift:"ערב", base:"ארלוזורוב"},
+                {name:"רותם סלע", shift:"ערב", base:"יפו"}
             ],
             stations: [
-                {n:"תמ פת",g:1,t:20}, {n:"פינסקר",g:2,t:20}, {n:"קרית אריה",g:4,t:25}, {n:"שנקר",g:6,t:20},
-                {n:"אהרונוביץ",g:9,t:30}, {n:"בן גוריון",g:11,t:30}, {n:"ביאליק",g:12,t:30}, {n:"ארלוזורוב",g:14,t:35},
-                {n:"שאול המלך",g:15,t:35}, {n:"קרליבך",g:17,t:30}, {n:"אלנבי",g:18,t:30}, {n:"אליפלט",g:19,t:25},
-                {n:"בלומפילד",g:21,t:20}, {n:"יפו",g:23,t:20}, {n:"יוספטל",g:28,t:25}, {n:"בלפור",g:30,t:25},
-                {n:"בנימין",g:31,t:25}, {n:"הקוממיות",g:34,t:25}
+                {name:"תמ פת", geo:1, target:20}, {name:"אהרונוביץ", geo:9, target:30},
+                {name:"בן גוריון", geo:11, target:30}, {name:"אלנבי", geo:18, target:30},
+                {name:"קרית אריה", geo:4, target:25}, {name:"הקוממיות", geo:34, target:25}
             ],
-            schedule: [], // The Tasks
+            schedule: [], 
             anchors: []
         };
 
-        let db = JSON.parse(JSON.stringify(defaultDB)); // Active State
+        let db = JSON.parse(JSON.stringify(initialDB));
         const days = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
 
-        // --- Initialization ---
+        // --- System Initialization ---
         window.onload = () => {
-            const saved = localStorage.getItem('rlight_db_v6');
+            const saved = localStorage.getItem('rlight_v7_db');
             if(saved) db = JSON.parse(saved);
             
+            // Populate Selects
+            document.getElementById('gantt-day-select').innerHTML = days.map((d,i) => `<option value="${i}">${d}</option>`).join('');
+            document.getElementById('edit-loc').innerHTML = [...db.stations.map(s=>`<option>${s.name}</option>`), '<option>משרד</option>', '<option>קצה</option>'].join('');
             document.getElementById('start-date').value = new Date().toISOString().split('T')[0];
-            
-            // Populate Filters & Selects
-            const dayOpts = days.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
-            document.getElementById('gantt-day-filter').innerHTML = dayOpts;
-            
-            const stOpts = db.stations.map(s=>`<option>${s.n}</option>`).join('');
-            document.getElementById('edit-loc').innerHTML = stOpts;
 
-            updateSystem();
+            syncSystem();
         };
 
-        // --- Core System Update Loop ---
-        function updateSystem() {
-            db.meta.lastUpdated = new Date().toISOString();
-            localStorage.setItem('rlight_db_v6', JSON.stringify(db));
+        // --- Core Sync Logic ---
+        function syncSystem() {
+            db.meta.lastSync = new Date().toISOString();
+            localStorage.setItem('rlight_v7_db', JSON.stringify(db));
             
-            // Update JSON View
-            document.getElementById('json-editor').value = JSON.stringify(db, null, 2);
+            // Sync Text Editor
+            document.getElementById('json-display').value = JSON.stringify(db, null, 2);
             
-            // Run Validation
-            const violations = validateRules();
-            renderAlerts(violations);
+            // Validate Logic
+            const violations = validateSchedule();
             
-            // Update Stats
+            // Update Dashboard
             document.getElementById('stat-tasks').innerText = db.schedule.length;
             document.getElementById('stat-anchors').innerText = db.anchors.length;
             document.getElementById('stat-violations').innerText = violations.length;
-
-            // Render Active View
-            if(!document.getElementById('page-gantt').classList.contains('hidden')) renderGantt(violations);
             
-            // Sync Animation
-            const sync = document.getElementById('sync-status');
-            sync.innerHTML = `<i class="fas fa-sync fa-spin"></i> שומר...`;
-            setTimeout(() => sync.innerHTML = `<i class="fas fa-check-circle"></i> מסונכרן`, 500);
+            renderViolationsList(violations);
+            
+            // If Gantt is active, refresh it
+            if(document.getElementById('tab-gantt').classList.contains('active')) renderGantt(violations);
+            
+            // Validator Status
+            const statusEl = document.getElementById('validator-status');
+            if(violations.length > 0) {
+                statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> נמצאו ${violations.length} חריגות`;
+                statusEl.className = "text-sm font-bold text-red-500";
+            } else {
+                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> לו"ז תקין`;
+                statusEl.className = "text-sm font-bold text-green-400";
+            }
         }
 
-        // --- Validation Engine ---
-        function validateRules() {
+        // --- Rule Engine (Validation) ---
+        function validateSchedule() {
             const violations = [];
             
-            // 1. Group tasks by inspector and day
             db.inspectors.forEach(insp => {
                 for(let d=0; d<7; d++) {
-                    const tasks = db.schedule.filter(t => t.insp === insp.n && t.dIdx === d).sort((a,b)=>a.start-b.start);
+                    const tasks = db.schedule.filter(t => t.inspector === insp.name && t.dayIdx === d).sort((a,b) => a.start - b.start);
                     if(tasks.length === 0) continue;
 
-                    // Rule: Max Shift Length
+                    // Rule 1: Max Shift Duration (9 Hours)
                     const shiftStart = tasks[0].start;
-                    const shiftEnd = tasks[tasks.length-1].end;
-                    const durationHours = (shiftEnd - shiftStart) / 60;
-                    
-                    if(durationHours > db.settings.maxShiftHours) {
+                    const shiftEnd = tasks[tasks.length - 1].end;
+                    if((shiftEnd - shiftStart) > db.settings.maxShiftMins) {
                         violations.push({
-                            type: 'hours', 
-                            msg: `${insp.n} (יום ${days[d]}): משמרת ארוכה מדי (${durationHours.toFixed(1)} שעות)`,
+                            type: 'shift_length',
+                            msg: `${insp.name} (יום ${days[d]}): משמרת מעל 9 שעות`,
                             taskIds: tasks.map(t=>t.id)
                         });
                     }
 
-                    // Rule: Overlaps
-                    for(let i=0; i<tasks.length-1; i++) {
+                    // Rule 2: Overlaps
+                    for(let i=0; i < tasks.length - 1; i++) {
                         if(tasks[i].end > tasks[i+1].start) {
                             violations.push({
                                 type: 'overlap',
-                                msg: `${insp.n} (יום ${days[d]}): חפיפת זמנים בין משימות`,
+                                msg: `${insp.name} (יום ${days[d]}): חפיפה בין משימות בשעה ${minsToTime(tasks[i+1].start)}`,
                                 taskIds: [tasks[i].id, tasks[i+1].id]
                             });
                         }
@@ -304,193 +307,177 @@
             return violations;
         }
 
-        function renderAlerts(violations) {
-            const list = document.getElementById('alerts-list');
+        // --- UI Rendering ---
+        function renderGantt(violations = []) {
+            const dayIdx = parseInt(document.getElementById('gantt-day-select').value);
+            const header = document.getElementById('gantt-header-hours');
+            const container = document.getElementById('gantt-rows-container');
+            
+            // Render Header
+            let headerHTML = `<div class="gantt-label-col">בקר / שעה</div><div class="gantt-timeline">`;
+            for(let h=6; h<=23; h++) headerHTML += `<div class="hour-mark">${h}:00</div>`;
+            header.innerHTML = headerHTML + `</div>`;
+
+            // Render Rows
+            const pxPerMin = 1200 / (18 * 60); // min-width / 18 hours
+
+            container.innerHTML = db.inspectors.map(insp => {
+                const inspTasks = db.schedule.filter(t => t.inspector === insp.name && t.dayIdx === dayIdx);
+                
+                return `
+                    <div class="gantt-row">
+                        <div class="gantt-label-col text-slate-700">${insp.name}</div>
+                        <div class="gantt-timeline">
+                            ${inspTasks.map(t => {
+                                const left = (t.start - 360) * pxPerMin;
+                                const width = (t.end - t.start) * pxPerMin;
+                                const isViolated = violations.some(v => v.taskIds.includes(t.id));
+                                
+                                return `
+                                    <div class="task-block bg-${t.type} ${isViolated ? 'violation' : ''}" 
+                                         style="left: ${left}px; width: ${width}px;"
+                                         onclick="openEditModal('${t.id}')">
+                                        <span class="font-bold truncate w-full px-1">${t.location}</span>
+                                        <span class="text-[9px] opacity-80">${minsToTime(t.start)}-${minsToTime(t.end)}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderViolationsList(violations) {
+            const feed = document.getElementById('violation-feed');
             if(violations.length === 0) {
-                list.innerHTML = `<div class="text-green-600 font-bold"><i class="fas fa-check"></i> הכל תקין</div>`;
+                feed.innerHTML = `<p class="text-green-500 font-bold italic text-center py-4">✓ אין חריגות במערכת</p>`;
                 return;
             }
-            list.innerHTML = violations.map(v => `
-                <div class="bg-red-50 text-red-700 p-2 rounded border border-red-200 text-xs font-bold flex items-center gap-2">
-                    <i class="fas fa-times-circle"></i> ${v.msg}
+            feed.innerHTML = violations.map(v => `
+                <div class="bg-red-50 border-r-4 border-red-500 p-2 rounded flex justify-between items-center">
+                    <span class="font-bold text-red-700"><i class="fas fa-exclamation-circle"></i> ${v.msg}</span>
                 </div>
             `).join('');
         }
 
-        // --- Scheduler Logic (Simplified for V6) ---
-        function runScheduler() {
-            db.schedule = []; // Clear
-            const startDt = new Date(document.getElementById('start-date').value);
-            
+        // --- Task Automatic Generation (Engine) ---
+        function runAutomaticScheduler() {
+            db.schedule = [];
+            const dateStr = document.getElementById('start-date').value;
+
             for(let d=0; d<7; d++) {
-                const dateStr = new Date(startDt.getTime() + d*86400000).toISOString().split('T')[0];
-                
                 db.inspectors.forEach(insp => {
-                    let time = insp.s === "morning" ? 360 : 840; // 06:00 / 14:00
-                    const end = insp.s === "morning" ? 870 : 1350;
+                    let time = insp.shift === "בוקר" ? 360 : 840;
+                    const shiftEnd = insp.shift === "בוקר" ? 870 : 1350;
                     let loc = insp.base;
 
-                    while(time < end) {
-                        // Simple Logic: Find best station
-                        let best = db.stations[0], min = Infinity;
-                        const cGeo = db.stations.find(s=>s.n===loc)?.g || 1;
+                    while(time < shiftEnd - 60) {
+                        // Find best station logic
+                        let next = db.stations[Math.floor(Math.random() * db.stations.length)];
+                        let travel = Math.abs(next.geo - (db.stations.find(s=>s.name===loc)?.geo || 1)) * 4 + 5;
                         
-                        db.stations.forEach(s => {
-                            if(s.n===loc) return;
-                            let score = Math.abs(s.g - cGeo)*2 + Math.random()*5;
-                            if(score < min) { min = score; best = s; }
-                        });
-
-                        const travel = Math.abs(best.g - cGeo)*3 + 5;
-                        
-                        // Add Travel
                         if(travel > 5) {
-                            addTask(d, dateStr, insp.n, "נסיעה", best.n, time, travel, "travel");
+                            addTask(d, dateStr, insp.name, "נסיעה", next.name, time, travel, "travel");
                             time += travel;
                         }
-                        
-                        // Add Inspection
-                        addTask(d, dateStr, insp.n, "בקרת תחנה", best.n, time, 30, "insp");
+
+                        addTask(d, dateStr, insp.name, "בקרת תחנה", next.name, time, 30, "insp");
                         time += 30;
-                        loc = best.n;
+                        loc = next.name;
                     }
+                    addTask(d, dateStr, insp.name, "סגירה", "משרד", time, (shiftEnd - time), "admin");
                 });
             }
-            updateSystem();
-            showPage('gantt');
+            syncSystem();
+            switchTab('gantt');
         }
 
-        function addTask(dIdx, date, insp, task, loc, start, dur, type) {
+        function addTask(dayIdx, date, inspector, taskName, location, start, duration, type) {
             db.schedule.push({
-                id: Date.now() + Math.random(),
-                dIdx, date, insp, task, loc, start, dur, type, end: start+dur
+                id: "T-" + Math.random().toString(36).substr(2, 9),
+                dayIdx, date, inspector, taskName, location,
+                start, end: start + duration, type
             });
         }
 
-        // --- Gantt & Editing ---
-        function renderGantt(violations = []) {
-            const dIdx = parseInt(document.getElementById('gantt-day-filter').value);
-            const header = document.getElementById('gantt-header');
-            const body = document.getElementById('gantt-body');
-            
-            // Header
-            let hHtml = `<div class="gantt-label">בקר / שעה</div><div class="gantt-timeline flex">`;
-            for(let h=6; h<=23; h++) hHtml += `<div style="flex:1; border-right:1px solid #e2e8f0; text-align:center; font-size:10px; color:#94a3b8;">${h}:00</div>`;
-            header.innerHTML = hHtml + `</div>`;
-
-            // Body
-            const pxPerMin = 1000 / (18*60); // 1000px width / 18 hours
-            
-            body.innerHTML = db.inspectors.map(insp => {
-                const tasks = db.schedule.filter(t => t.dIdx === dIdx && t.insp === insp.n);
-                
-                let row = `<div class="gantt-row"><div class="gantt-label">${insp.n}</div><div class="gantt-timeline">`;
-                
-                row += tasks.map(t => {
-                    const left = (t.start - 360) * pxPerMin;
-                    const width = t.dur * pxPerMin;
-                    const isViolated = violations.some(v => v.taskIds.includes(t.id));
-                    const bg = `bg-${t.type}`;
-                    
-                    return `<div class="task-block ${bg} ${isViolated?'violation':''}" 
-                            style="left:${left}px; width:${width}px;"
-                            onclick="openEditModal(${t.id})"
-                            title="${t.task}">
-                            ${width>30 ? t.loc : ''}
-                            </div>`;
-                }).join('');
-                
-                return row + `</div></div>`;
-            }).join('');
-        }
-
-        // --- Modal Logic ---
-        let currentEditId = null;
-
-        function openEditModal(id) {
-            const task = db.schedule.find(t => t.id === id);
+        // --- Modal & Editing Logic ---
+        function openEditModal(taskId) {
+            const task = db.schedule.find(t => t.id === taskId);
             if(!task) return;
-            currentEditId = id;
             
-            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-id').value = taskId;
             document.getElementById('edit-type').value = task.type;
-            document.getElementById('edit-loc').value = task.loc;
+            document.getElementById('edit-loc').value = task.location;
             document.getElementById('edit-start').value = minsToTime(task.start);
-            document.getElementById('edit-dur').value = task.dur;
+            document.getElementById('edit-dur').value = (task.end - task.start);
             
             document.getElementById('edit-modal').classList.remove('hidden');
+            document.getElementById('edit-modal').classList.add('flex');
         }
 
-        function saveTaskEdit() {
-            const task = db.schedule.find(t => t.id === currentEditId);
+        function saveTaskChanges() {
+            const id = document.getElementById('edit-id').value;
+            const task = db.schedule.find(t => t.id === id);
+            
             if(task) {
                 task.type = document.getElementById('edit-type').value;
-                task.loc = document.getElementById('edit-loc').value;
+                task.location = document.getElementById('edit-loc').value;
                 task.start = timeToMins(document.getElementById('edit-start').value);
-                task.dur = parseInt(document.getElementById('edit-dur').value);
-                task.end = task.start + task.dur;
+                task.end = task.start + parseInt(document.getElementById('edit-dur').value);
                 
-                // Update Task Name based on type
-                const map = {insp:"בקרת תחנה", travel:"נסיעה", anchor:"עוגן", admin:"מנהלה"};
-                task.task = map[task.type];
-                
-                updateSystem();
+                syncSystem();
                 closeModal();
             }
         }
 
         function deleteTask() {
-            if(confirm("למחוק משימה זו?")) {
-                db.schedule = db.schedule.filter(t => t.id !== currentEditId);
-                updateSystem();
-                closeModal();
+            const id = document.getElementById('edit-id').value;
+            db.schedule = db.schedule.filter(t => t.id !== id);
+            syncSystem();
+            closeModal();
+        }
+
+        function saveJsonChanges() {
+            try {
+                const newDB = JSON.parse(document.getElementById('json-display').value);
+                db = newDB;
+                syncSystem();
+                alert("קובץ עודכן בהצלחה!");
+            } catch(e) {
+                alert("שגיאה בפורמט ה-JSON. נא לבדוק את הקוד.");
             }
         }
 
-        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+        // --- Helpers ---
+        function minsToTime(m) {
+            let h = Math.floor(m / 60);
+            let mins = m % 60;
+            return `${h.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
 
-        // --- JSON File Handling ---
-        function saveJsonFromEditor() {
-            try {
-                const newDb = JSON.parse(document.getElementById('json-editor').value);
-                db = newDb;
-                updateSystem();
-                alert("הנתונים נשמרו בהצלחה!");
-            } catch(e) { alert("שגיאה בפורמט JSON"); }
+        function timeToMins(t) {
+            let [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${id}`).classList.add('active');
+            if(id === 'gantt') renderGantt(validateSchedule());
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            document.getElementById('edit-modal').classList.remove('flex');
         }
 
         function downloadJSON() {
-            const blob = new Blob([JSON.stringify(db, null, 2)], {type : 'application/json'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'database.json';
-            link.click();
-        }
-
-        function uploadJSON(input) {
-            const file = input.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    db = JSON.parse(e.target.result);
-                    updateSystem();
-                    alert("הקובץ נטען בהצלחה!");
-                } catch(err) { alert("קובץ לא תקין"); }
-            };
-            reader.readAsText(file);
-        }
-
-        // --- Helpers ---
-        function showPage(id) {
-            document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`page-${id}`).classList.remove('hidden');
-            if(id === 'gantt') renderGantt(validateRules());
-        }
-        function timeToMins(s) { let [h,m]=s.split(':').map(Number); return h*60+m; }
-        function minsToTime(m) { 
-            let h = Math.floor(m/60), n = Math.floor(m%60); 
-            return `${h.toString().padStart(2,'0')}:${n.toString().padStart(2,'0')}`; 
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "rail_pro_db.json");
+            dlAnchorElem.click();
         }
     </script>
 </body>
