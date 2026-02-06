@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת שיבוץ בקרים - הקו האדום</title>
+    <title>מערכת שיבוץ שבועי - הקו האדום</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;700&display=swap');
         body { font-family: 'Assistant', sans-serif; background-color: #f3f4f6; }
         .dashboard-header { background-color: #003366; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         .btn-primary { background-color: #003366; transition: all 0.3s; }
         .btn-primary:hover { background-color: #004a94; transform: translateY(-1px); }
         tr:nth-child(even) { background-color: #f9fafb; }
-        .travel-row { background-color: #f3f4f6; color: #666; font-style: italic; }
+        .travel-row { background-color: #f0fdf4; color: #555; font-style: italic; font-size: 0.9em; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -22,18 +23,24 @@
     <!-- Header -->
     <header class="dashboard-header text-white p-6 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-bold">מערכת שיבוץ בקרים חכמה</h1>
-            <div id="current-date" class="text-xl italic"></div>
+            <div>
+                <h1 class="text-3xl font-bold">מערכת שיבוץ שבועי</h1>
+                <p class="text-blue-200 text-sm mt-1">אופטימיזציה חכמה ל-15 בקרים (7 ימים)</p>
+            </div>
+            <div class="text-right">
+                <div id="current-date-display" class="text-xl font-bold"></div>
+                <div class="text-xs text-blue-200">גרסה 2.0 (Weekly Support)</div>
+            </div>
         </div>
     </header>
 
     <!-- Navigation -->
-    <nav class="bg-white border-b sticky top-0 z-10">
-        <div class="container mx-auto flex">
-            <button onclick="showTab('dashboard')" class="px-6 py-4 font-bold border-b-2 border-blue-900 text-blue-900 transition-all hover:bg-gray-50">לוח בקרה</button>
-            <button onclick="showTab('schedule')" class="px-6 py-4 font-bold border-b-2 border-transparent hover:border-blue-300 transition-all">לו"ז יומי</button>
-            <button onclick="showTab('inspectors')" class="px-6 py-4 font-bold border-b-2 border-transparent hover:border-blue-300 transition-all">בקרים (15)</button>
-            <button onclick="showTab('stations')" class="px-6 py-4 font-bold border-b-2 border-transparent hover:border-blue-300 transition-all">מסד נתונים תחנות</button>
+    <nav class="bg-white border-b sticky top-0 z-20 shadow-sm">
+        <div class="container mx-auto flex overflow-x-auto">
+            <button onclick="showTab('dashboard')" class="nav-btn px-6 py-4 font-bold border-b-2 border-blue-900 text-blue-900 transition-all hover:bg-gray-50 whitespace-nowrap">לוח בקרה</button>
+            <button onclick="showTab('schedule')" class="nav-btn px-6 py-4 font-bold border-b-2 border-transparent hover:border-blue-300 transition-all whitespace-nowrap">לו"ז שבועי מלא</button>
+            <button onclick="showTab('inspectors')" class="nav-btn px-6 py-4 font-bold border-b-2 border-transparent hover:border-blue-300 transition-all whitespace-nowrap">בקרים (15)</button>
+            <button onclick="showTab('stations')" class="nav-btn px-6 py-4 font-bold border-b-2 border-transparent hover:border-blue-300 transition-all whitespace-nowrap">סטטוס תחנות</button>
         </div>
     </nav>
 
@@ -42,73 +49,98 @@
         <!-- Tab: Dashboard -->
         <div id="dashboard" class="tab-content active space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Control Panel -->
                 <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-800">
-                    <h3 class="text-gray-500 font-bold mb-2">תאריך לשיבוץ</h3>
-                    <input type="date" id="schedule-date" class="w-full border p-2 rounded mb-4 shadow-inner">
-                    <button onclick="generateSchedule()" class="btn-primary text-white w-full py-3 rounded-lg font-bold shadow-md">
-                        בצע שיבוץ יומי חכם
+                    <h3 class="text-gray-500 font-bold mb-2">הגדרת שבוע עבודה</h3>
+                    <label class="text-sm text-gray-600 block mb-1">תאריך התחלה (יום א'):</label>
+                    <input type="date" id="start-date" class="w-full border p-2 rounded mb-4 shadow-inner bg-gray-50">
+                    <button onclick="generateWeeklySchedule()" class="btn-primary text-white w-full py-3 rounded-lg font-bold shadow-md flex justify-center items-center gap-2">
+                        <span>⚙️</span> בצע שיבוץ לשבוע שלם
                     </button>
+                    <p class="text-xs text-gray-400 mt-2 text-center">השיבוץ יבוצע ל-7 ימים עוקבים</p>
                 </div>
 
+                <!-- KPI Panel -->
                 <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-600">
-                    <h3 class="text-gray-500 font-bold mb-2">סטטוס ביצוע (KPI)</h3>
-                    <div class="space-y-2">
-                        <p class="flex justify-between"><span>סה"כ משמרות:</span> <span id="kpi-shifts" class="font-bold text-green-700">0</span></p>
-                        <p class="flex justify-between"><span>בקרות תחנה:</span> <span id="kpi-inspections" class="font-bold text-blue-700">0</span></p>
-                        <p class="flex justify-between"><span>נסיעות מנהלתיות:</span> <span id="kpi-travels" class="font-bold text-gray-500">0</span></p>
+                    <h3 class="text-gray-500 font-bold mb-2">צפי ביצוע שבועי (KPI)</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="text-gray-600">סה"כ משמרות:</span> 
+                            <span id="kpi-shifts" class="font-bold text-2xl text-gray-800">0</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="text-gray-600">ביקורות בתחנות:</span> 
+                            <span id="kpi-inspections" class="font-bold text-2xl text-blue-600">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">כיסוי ממוצע לבקר:</span> 
+                            <span id="kpi-avg" class="font-bold text-green-600">0</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 text-center flex flex-col justify-center">
-                    <p class="text-sm text-gray-500">מוכן להפעלה עבור</p>
-                    <p class="text-2xl font-black">15 בקרים</p>
+                <!-- Info Panel -->
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 flex flex-col justify-center items-center text-center">
+                    <div class="text-4xl mb-2">📅</div>
+                    <h3 class="font-bold text-xl mb-1">ניהול חכם</h3>
+                    <p class="text-sm text-gray-500">
+                        המערכת זוכרת אילו תחנות בוקרו בתחילת השבוע ומפחיתה את העדיפות שלהן בהמשך השבוע כדי ליצור <span class="font-bold text-gray-800">כיסוי אחיד</span>.
+                    </p>
                 </div>
-            </div>
-            
-            <div class="bg-blue-50 border-r-4 border-blue-500 p-4 rounded text-blue-800">
-                <strong>טיפ מערכת:</strong> האלגוריתם מתעדף תחנות שבהן מספר הבקרות החודשי נמוך מהיעד (KPI Optimization).
             </div>
         </div>
 
         <!-- Tab: Schedule Results -->
         <div id="schedule" class="tab-content">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-gray-800">תוצאות שיבוץ יומי</h2>
-                <button onclick="exportToCSV()" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">ייצוא ל-Excel (CSV)</button>
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                <h2 class="text-2xl font-bold text-gray-800">תוצאות שיבוץ שבועי</h2>
+                
+                <div class="flex gap-2">
+                    <select id="day-filter" onchange="filterSchedule()" class="border p-2 rounded shadow-sm">
+                        <option value="all">הצג את כל השבוע</option>
+                        <!-- Options filled by JS -->
+                    </select>
+                    <button onclick="exportToCSV()" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 flex items-center gap-2">
+                        <span>📥</span> ייצוא ל-Excel
+                    </button>
+                </div>
             </div>
-            <div class="bg-white rounded-lg shadow-xl overflow-x-auto">
-                <table class="min-w-full">
-                    <thead class="bg-gray-800 text-white">
+            
+            <div class="bg-white rounded-lg shadow-xl overflow-x-auto border border-gray-200">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-800 text-white sticky top-0">
                         <tr>
+                            <th class="px-4 py-3 text-right w-24">תאריך</th>
+                            <th class="px-4 py-3 text-right w-20">יום</th>
                             <th class="px-4 py-3 text-right">בקר</th>
                             <th class="px-4 py-3 text-right">משימה</th>
                             <th class="px-4 py-3 text-right">מיקום</th>
                             <th class="px-4 py-3 text-right">התחלה</th>
                             <th class="px-4 py-3 text-right">סיום</th>
-                            <th class="px-4 py-3 text-right">משך</th>
-                            <th class="px-4 py-3 text-right">הערות</th>
+                            <th class="px-4 py-3 text-right">הערות מערכת</th>
                         </tr>
                     </thead>
                     <tbody id="schedule-body">
                         <tr>
-                            <td colspan="7" class="text-center py-10 text-gray-400 italic">טרם בוצע שיבוץ. לחץ על "בצע שיבוץ יומי" בלוח הבקרה.</td>
+                            <td colspan="8" class="text-center py-10 text-gray-400 italic">יש ללחוץ על "בצע שיבוץ" בלוח הבקרה</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
+            <div id="loading-indicator" class="hidden text-center py-4 text-blue-600 font-bold">מעבד נתונים...</div>
         </div>
 
         <!-- Tab: Inspectors -->
         <div id="inspectors" class="tab-content">
-            <h2 class="text-2xl font-bold mb-4">ניהול בקרים (15)</h2>
+            <h2 class="text-2xl font-bold mb-4">מצבת בקרים (15)</h2>
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <table class="min-w-full">
                     <thead class="bg-gray-100 border-b">
                         <tr>
                             <th class="p-3 text-right">שם הבקר</th>
-                            <th class="p-3 text-right">משמרת</th>
-                            <th class="p-3 text-right">התחלה מועדפת</th>
-                            <th class="p-3 text-right">סיום מועדף</th>
+                            <th class="p-3 text-right">משמרת קבועה</th>
+                            <th class="p-3 text-right">תחנת מוצא</th>
+                            <th class="p-3 text-right">תחנת סיום</th>
                         </tr>
                     </thead>
                     <tbody id="inspectors-body"></tbody>
@@ -118,17 +150,18 @@
 
         <!-- Tab: Stations -->
         <div id="stations" class="tab-content">
-            <h2 class="text-2xl font-bold mb-4">ניהול תחנות ומכסות</h2>
+            <h2 class="text-2xl font-bold mb-4">סטטוס ביצוע מצטבר בתחנות</h2>
+            <p class="mb-4 text-gray-600 text-sm">העמודה "בוצע בסימולציה" מתעדכנת בזמן אמת בעת הרצת השיבוץ.</p>
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <table class="min-w-full">
                     <thead class="bg-gray-100 border-b">
                         <tr>
                             <th class="p-3 text-right">שם תחנה</th>
                             <th class="p-3 text-right">סוג</th>
-                            <th class="p-3 text-right">זמן (דק')</th>
                             <th class="p-3 text-right">Geo Index</th>
                             <th class="p-3 text-right">יעד חודשי</th>
-                            <th class="p-3 text-right">בוצע</th>
+                            <th class="p-3 text-right">בוצע (בסיס)</th>
+                            <th class="p-3 text-right bg-blue-50">בוצע השבוע (סימולציה)</th>
                         </tr>
                     </thead>
                     <tbody id="stations-body"></tbody>
@@ -139,28 +172,30 @@
     </main>
 
     <script>
-        // --- Data ---
-        const stations = [
-            { name: "תמ פת", type: "עילי", dur: 30, geo: 1, target: 20, actual: 5 },
-            { name: "פינסקר", type: "עילי", dur: 30, geo: 2, target: 20, actual: 8 },
-            { name: "קרית אריה", type: "עילי", dur: 30, geo: 4, target: 20, actual: 12 },
-            { name: "שנקר", type: "עילי", dur: 30, geo: 6, target: 20, actual: 3 },
-            { name: "אהרונוביץ", type: "תת-קרקעי", dur: 60, geo: 9, target: 20, actual: 15 },
-            { name: "בן גוריון", type: "תת-קרקעי", dur: 60, geo: 11, target: 20, actual: 14 },
-            { name: "ביאליק", type: "תת-קרקעי", dur: 60, geo: 12, target: 20, actual: 7 },
-            { name: "ארלוזורוב", type: "תת-קרקעי", dur: 60, geo: 14, target: 20, actual: 19 },
-            { name: "שאול המלך", type: "תת-קרקעי", dur: 60, geo: 15, target: 20, actual: 11 },
-            { name: "קרליבך", type: "תת-קרקעי", dur: 60, geo: 17, target: 20, actual: 4 },
-            { name: "אלנבי", type: "תת-קרקעי", dur: 60, geo: 18, target: 20, actual: 9 },
-            { name: "אליפלט", type: "תת-קרקעי", dur: 60, geo: 19, target: 20, actual: 13 },
-            { name: "בלומפילד", type: "עילי", dur: 30, geo: 21, target: 20, actual: 2 },
-            { name: "יפו", type: "עילי", dur: 30, geo: 23, target: 20, actual: 18 },
-            { name: "יוספטל", type: "עילי", dur: 30, geo: 28, target: 20, actual: 6 },
-            { name: "בלפור", type: "עילי", dur: 30, geo: 30, target: 20, actual: 10 },
-            { name: "בנימין", type: "עילי", dur: 30, geo: 31, target: 20, actual: 5 },
-            { name: "הקוממיות", type: "עילי", dur: 30, geo: 34, target: 20, actual: 1 }
+        // --- Data Definitions ---
+        // Base configuration for stations
+        const baseStations = [
+            { name: "תמ פת", type: "עילי", dur: 30, geo: 1, target: 40, actual: 5 },
+            { name: "פינסקר", type: "עילי", dur: 30, geo: 2, target: 40, actual: 8 },
+            { name: "קרית אריה", type: "עילי", dur: 30, geo: 4, target: 40, actual: 12 },
+            { name: "שנקר", type: "עילי", dur: 30, geo: 6, target: 40, actual: 3 },
+            { name: "אהרונוביץ", type: "תת-קרקעי", dur: 60, geo: 9, target: 40, actual: 15 },
+            { name: "בן גוריון", type: "תת-קרקעי", dur: 60, geo: 11, target: 40, actual: 14 },
+            { name: "ביאליק", type: "תת-קרקעי", dur: 60, geo: 12, target: 40, actual: 7 },
+            { name: "ארלוזורוב", type: "תת-קרקעי", dur: 60, geo: 14, target: 40, actual: 19 },
+            { name: "שאול המלך", type: "תת-קרקעי", dur: 60, geo: 15, target: 40, actual: 11 },
+            { name: "קרליבך", type: "תת-קרקעי", dur: 60, geo: 17, target: 40, actual: 4 },
+            { name: "אלנבי", type: "תת-קרקעי", dur: 60, geo: 18, target: 40, actual: 9 },
+            { name: "אליפלט", type: "תת-קרקעי", dur: 60, geo: 19, target: 40, actual: 13 },
+            { name: "בלומפילד", type: "עילי", dur: 30, geo: 21, target: 40, actual: 2 },
+            { name: "יפו", type: "עילי", dur: 30, geo: 23, target: 40, actual: 18 },
+            { name: "יוספטל", type: "עילי", dur: 30, geo: 28, target: 40, actual: 6 },
+            { name: "בלפור", type: "עילי", dur: 30, geo: 30, target: 40, actual: 10 },
+            { name: "בנימין", type: "עילי", dur: 30, geo: 31, target: 40, actual: 5 },
+            { name: "הקוממיות", type: "עילי", dur: 30, geo: 34, target: 40, actual: 1 }
         ];
 
+        // Inspectors list
         const inspectors = [
             { name: "דניאל אברהם", shift: "בוקר", start: "תמ פת", end: "קרית אריה" },
             { name: "רונית לוי", shift: "בוקר", start: "הקוממיות", end: "בלפור" },
@@ -179,86 +214,234 @@
             { name: "אסי עזר", shift: "ערב", start: "יהודית", end: "שאול המלך" }
         ];
 
+        const daysOfWeek = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+        
+        // Global State
         let masterSchedule = [];
+        let simulatedStations = []; // Will hold the state during the week simulation
 
         // --- Logic Engine ---
+
+        function init() {
+            // Set default date to coming Sunday (or today)
+            const today = new Date();
+            const dateInput = document.getElementById('start-date');
+            dateInput.value = today.toISOString().split('T')[0];
+            
+            document.getElementById('current-date-display').innerText = today.toLocaleDateString('he-IL');
+            
+            renderInspectorsTable();
+            renderStationsTable(baseStations); // Initial render
+        }
+
         function showTab(id) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById(id).classList.add('active');
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('border-blue-900', 'text-blue-900'));
+            
+            // Update Navigation Styles
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('border-blue-900', 'text-blue-900');
+                b.classList.add('border-transparent');
+            });
+            event.target.classList.remove('border-transparent');
             event.target.classList.add('border-blue-900', 'text-blue-900');
         }
 
-        function getStationData(name) {
-            return stations.find(s => s.name === name) || stations[0];
+        // Deep copy helper to reset simulation
+        function resetSimulation() {
+            simulatedStations = JSON.parse(JSON.stringify(baseStations));
+            masterSchedule = [];
         }
 
-        function findNextBestStation(currentLocName) {
+        function getStationData(name) {
+            return simulatedStations.find(s => s.name === name) || simulatedStations[0];
+        }
+
+        // The Core Algorithm - Now uses 'simulatedStations' which updates during the loop
+        function findNextBestStation(currentLocName, lastStationName) {
             const currentGeo = getStationData(currentLocName).geo;
-            let best = stations[0];
+            let best = null;
             let minScore = Infinity;
 
-            stations.forEach(st => {
+            simulatedStations.forEach(st => {
+                // Prevent sticking to same station or ping-ponging immediately if possible
                 if (st.name === currentLocName) return;
+                
+                // Calculate Score
                 const dist = Math.abs(st.geo - currentGeo);
-                const score = (dist * 2) + (st.actual * 5); // Logic from VBA
+                // Formula: Minimize Distance, Minimize Existing Visits
+                // We add a tiny random factor (0-0.5) to break ties and create variety across days
+                const score = (dist * 2.5) + (st.actual * 6) + (Math.random() * 0.5); 
+                
                 if (score < minScore) {
                     minScore = score;
                     best = st;
                 }
             });
-            return best;
+            return best || simulatedStations[0]; // Fallback
         }
 
-        function generateSchedule() {
-            const date = document.getElementById('schedule-date').value || new Date().toISOString().split('T')[0];
-            masterSchedule = [];
+        function generateWeeklySchedule() {
+            const startDateStr = document.getElementById('start-date').value;
+            if(!startDateStr) { alert("אנא בחר תאריך התחלה"); return; }
             
-            inspectors.forEach(insp => {
-                let currTime = insp.shift === "בוקר" ? "06:00" : "14:00";
-                const shiftEnd = insp.shift === "בוקר" ? "14:30" : "22:30";
-                let currLoc = insp.start;
-
-                // First Task
-                const firstSt = getStationData(currLoc);
-                addTask(insp.name, "בקרת תחנה (פתיחה)", currLoc, currTime, firstSt.dur, "עוגן התחלה");
-                currTime = addMinutes(currTime, firstSt.dur);
-
-                // Main Loop
-                while (isTimeBefore(currTime, addMinutes(shiftEnd, -60))) {
-                    const nextSt = findNextBestStation(currLoc);
-                    
-                    // Travel
-                    const dist = Math.abs(getStationData(currLoc).geo - nextSt.geo);
-                    const travelTime = (dist * 3) + 5;
-                    addTask(insp.name, "נסיעה מנהלתית", `${currLoc} ➔ ${nextSt.name}`, currTime, travelTime, "גישור גיאוגרפי");
-                    currTime = addMinutes(currTime, travelTime);
-
-                    // Inspection
-                    addTask(insp.name, "בקרת תחנה", nextSt.name, currTime, nextSt.dur, "KPI Optimization");
-                    currTime = addMinutes(currTime, nextSt.dur);
-                    currLoc = nextSt.name;
-                }
+            const startDate = new Date(startDateStr);
+            resetSimulation();
+            
+            // Loop 7 Days
+            for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+                // Calculate current date in loop
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + dayOffset);
+                const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+                const dayName = daysOfWeek[currentDate.getDay()];
                 
-                // End shift
-                addTask(insp.name, "סגירת משמרת", "משרד/קצה", currTime, 30, "סיכום ודיווח");
-            });
+                // --- Daily Loop (Same as before, but inside the week) ---
+                inspectors.forEach(insp => {
+                    let currTime = insp.shift === "בוקר" ? "06:00" : "14:00";
+                    const shiftEnd = insp.shift === "בוקר" ? "14:30" : "22:30";
+                    let currLoc = insp.start;
 
+                    // 1. Start Anchor
+                    const firstSt = getStationData(currLoc);
+                    addTask(dateStr, dayName, insp.name, "בקרת תחנה (פתיחה)", currLoc, currTime, firstSt.dur, "עוגן התחלה");
+                    incrementStationCount(currLoc); // Update stats!
+                    currTime = addMinutes(currTime, firstSt.dur);
+
+                    // 2. Shift Flow
+                    while (isTimeBefore(currTime, addMinutes(shiftEnd, -60))) {
+                        const nextSt = findNextBestStation(currLoc);
+                        
+                        // Calculate Travel
+                        const dist = Math.abs(getStationData(currLoc).geo - nextSt.geo);
+                        const travelTime = (dist * 3) + 5;
+                        
+                        // Add Travel Task (only if significant)
+                        if (travelTime > 5) {
+                            addTask(dateStr, dayName, insp.name, "נסיעה מנהלתית", `${currLoc} ➔ ${nextSt.name}`, currTime, travelTime, "ניוד");
+                            currTime = addMinutes(currTime, travelTime);
+                        }
+
+                        // Add Inspection Task
+                        addTask(dateStr, dayName, insp.name, "בקרת תחנה", nextSt.name, currTime, nextSt.dur, "אופטימיזציה");
+                        incrementStationCount(nextSt.name); // Vital: This affects the algorithm for the NEXT iteration/day
+                        
+                        currTime = addMinutes(currTime, nextSt.dur);
+                        currLoc = nextSt.name;
+                    }
+                    
+                    // 3. End Shift
+                    addTask(dateStr, dayName, insp.name, "סגירת משמרת", "משרד/קצה", currTime, 30, "סיכום ודיווח");
+                });
+            }
+
+            // Post-Processing
             renderSchedule();
+            updateFilterDropdown(startDate);
             updateKPIs();
-            alert("השיבוץ הושלם עבור 15 בקרים!");
+            renderStationsTable(simulatedStations); // Show updated counts
             showTab('schedule');
         }
 
-        function addTask(name, task, loc, start, dur, note) {
-            const end = addMinutes(start, dur);
-            masterSchedule.push({ name, task, loc, start, end, dur, note });
+        function incrementStationCount(name) {
+            const st = simulatedStations.find(s => s.name === name);
+            if(st) st.actual++;
         }
 
-        // --- UI Helpers ---
+        function addTask(date, day, name, task, loc, start, dur, note) {
+            const end = addMinutes(start, dur);
+            masterSchedule.push({ date, day, name, task, loc, start, end, dur, note });
+        }
+
+        // --- UI Rendering ---
+
+        function updateFilterDropdown(startDate) {
+            const select = document.getElementById('day-filter');
+            select.innerHTML = '<option value="all">הצג את כל השבוע</option>';
+            
+            for(let i=0; i<7; i++) {
+                const d = new Date(startDate);
+                d.setDate(startDate.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const display = `${dateStr} (${daysOfWeek[d.getDay()]})`;
+                select.innerHTML += `<option value="${dateStr}">${display}</option>`;
+            }
+        }
+
+        function filterSchedule() {
+            renderSchedule();
+        }
+
+        function renderSchedule() {
+            const filterVal = document.getElementById('day-filter').value;
+            const body = document.getElementById('schedule-body');
+            
+            // Filter Data
+            const dataToShow = masterSchedule.filter(row => {
+                if (filterVal === 'all') return true;
+                return row.date === filterVal;
+            });
+
+            if (dataToShow.length === 0) {
+                body.innerHTML = `<tr><td colspan="8" class="text-center py-4">לא נמצאו נתונים</td></tr>`;
+                return;
+            }
+
+            // HTML Generation (optimized string concat)
+            body.innerHTML = dataToShow.map(s => `
+                <tr class="${s.task.includes('נסיעה') ? 'travel-row' : ''} hover:bg-blue-50 transition-colors">
+                    <td class="p-3 border-b text-gray-600">${s.date}</td>
+                    <td class="p-3 border-b font-bold text-gray-700">${s.day}</td>
+                    <td class="p-3 border-b font-bold text-blue-900">${s.name}</td>
+                    <td class="p-3 border-b">${s.task}</td>
+                    <td class="p-3 border-b">${s.loc}</td>
+                    <td class="p-3 border-b font-mono text-sm">${s.start}</td>
+                    <td class="p-3 border-b font-mono text-sm">${s.end}</td>
+                    <td class="p-3 border-b text-xs text-gray-500">${s.note}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderInspectorsTable() {
+            document.getElementById('inspectors-body').innerHTML = inspectors.map(i => `
+                <tr>
+                    <td class="p-3 border-b font-medium">${i.name}</td>
+                    <td class="p-3 border-b"><span class="px-2 py-1 rounded text-xs ${i.shift==='בוקר'?'bg-yellow-100 text-yellow-800':'bg-indigo-100 text-indigo-800'}">${i.shift}</span></td>
+                    <td class="p-3 border-b text-gray-600">${i.start}</td>
+                    <td class="p-3 border-b text-gray-600">${i.end}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderStationsTable(data) {
+            document.getElementById('stations-body').innerHTML = data.map(s => `
+                <tr>
+                    <td class="p-3 border-b font-bold text-gray-800">${s.name}</td>
+                    <td class="p-3 border-b text-sm">${s.type}</td>
+                    <td class="p-3 border-b text-sm">${s.geo}</td>
+                    <td class="p-3 border-b font-bold text-gray-400">${s.target}</td>
+                    <td class="p-3 border-b text-gray-500">${baseStations.find(b=>b.name===s.name).actual}</td>
+                    <td class="p-3 border-b bg-blue-50 font-bold ${s.actual >= s.target ? 'text-green-600' : 'text-blue-600'}">
+                        ${s.actual} 
+                        ${s.actual > baseStations.find(b=>b.name===s.name).actual ? '↑' : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateKPIs() {
+            const totalShifts = masterSchedule.filter(x => x.task.includes("פתיחה")).length;
+            const totalInsp = masterSchedule.filter(x => x.task.includes("בקרת")).length;
+            
+            document.getElementById('kpi-shifts').innerText = totalShifts;
+            document.getElementById('kpi-inspections').innerText = totalInsp;
+            document.getElementById('kpi-avg').innerText = (totalInsp / 15).toFixed(1);
+        }
+
+        // --- Helpers ---
         function addMinutes(timeStr, mins) {
             let [h, m] = timeStr.split(':').map(Number);
-            let date = new Date(0, 0, 0, h, m + mins);
+            let date = new Date(0, 0, 0, h, m + Math.round(mins));
             return date.toTimeString().substring(0, 5);
         }
 
@@ -266,47 +449,24 @@
             return t1 < t2;
         }
 
-        function renderSchedule() {
-            const body = document.getElementById('schedule-body');
-            body.innerHTML = masterSchedule.map(s => `
-                <tr class="${s.task.includes('נסיעה') ? 'travel-row' : ''}">
-                    <td class="p-3 border-b font-bold">${s.name}</td>
-                    <td class="p-3 border-b">${s.task}</td>
-                    <td class="p-3 border-b">${s.loc}</td>
-                    <td class="p-3 border-b">${s.start}</td>
-                    <td class="p-3 border-b">${s.end}</td>
-                    <td class="p-3 border-b">${s.dur} דק'</td>
-                    <td class="p-3 border-b text-xs text-gray-500">${s.note}</td>
-                </tr>
-            `).join('');
-        }
-
-        function updateKPIs() {
-            document.getElementById('kpi-shifts').innerText = inspectors.length;
-            document.getElementById('kpi-inspections').innerText = masterSchedule.filter(s => s.task.includes('בקרת')).length;
-            document.getElementById('kpi-travels').innerText = masterSchedule.filter(s => s.task.includes('נסיעה')).length;
-        }
-
         function exportToCSV() {
-            let csv = "בקר,משימה,מיקום,התחלה,סיום,משך,הערות\n";
+            if (masterSchedule.length === 0) { alert("אין נתונים לייצוא"); return; }
+            
+            let csv = "תאריך,יום,בקר,משימה,מיקום,התחלה,סיום,משך דקות,הערות\n";
             masterSchedule.forEach(s => {
-                csv += `${s.name},${s.task},${s.loc},${s.start},${s.end},${s.dur},${s.note}\n`;
+                csv += `${s.date},${s.day},${s.name},${s.task},${s.loc},${s.start},${s.end},${s.dur},${s.note}\n`;
             });
+            
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `schedule_${new Date().toLocaleDateString()}.csv`;
+            link.download = `Weekly_Schedule_${document.getElementById('start-date').value}.csv`;
             link.click();
         }
 
-        // Init
-        document.getElementById('current-date').innerText = new Date().toLocaleDateString('he-IL');
-        document.getElementById('inspectors-body').innerHTML = inspectors.map(i => `
-            <tr><td class="p-2 border-b">${i.name}</td><td class="p-2 border-b">${i.shift}</td><td class="p-2 border-b">${i.start}</td><td class="p-2 border-b">${i.end}</td></tr>
-        `).join('');
-        document.getElementById('stations-body').innerHTML = stations.map(s => `
-            <tr><td class="p-2 border-b font-bold">${s.name}</td><td class="p-2 border-b">${s.type}</td><td class="p-2 border-b">${s.dur}</td><td class="p-2 border-b">${s.geo}</td><td class="p-2 border-b font-bold text-blue-600">${s.target}</td><td class="p-2 border-b">${s.actual}</td></tr>
-        `).join('');
+        // Run Init
+        init();
+
     </script>
 </body>
 </html>
