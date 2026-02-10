@@ -3,165 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מכ"ם אוטובוסים ישראל - TransitLive</title>
+    <title>מכ"ם אוטובוסים בזמן אמת - ישראל</title>
+    
+    <!-- Tailwind CSS לעיצוב מהיר -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS - מפות חינמיות לחלוטין -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&display=swap');
-        body { font-family: 'Assistant', sans-serif; background-color: #f0f2f5; }
-        #map { height: calc(100vh - 70px); width: 100%; z-index: 1; }
-        .bus-marker {
-            background: #ffffff; border: 2px solid #2563eb; border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg); width: 30px !important; height: 30px !important;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;700&display=swap');
+        body { font-family: 'Assistant', sans-serif; margin: 0; padding: 0; }
+        #map { height: calc(100vh - 70px); width: 100%; }
+        
+        /* עיצוב האייקון של האוטובוס על המפה */
+        .bus-div-icon {
+            background: #2563eb;
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            width: 26px !important;
+            height: 26px !important;
         }
-        .bus-number { transform: rotate(45deg); font-weight: 800; font-size: 10px; color: #2563eb; }
-        .sidebar { height: calc(100vh - 70px); }
     </style>
 </head>
-<body class="overflow-hidden">
+<body class="bg-gray-50 overflow-hidden">
 
-    <!-- Navbar -->
-    <nav class="bg-slate-900 text-white h-[70px] px-6 flex justify-between items-center shadow-2xl relative z-[1000]">
+    <!-- Header -->
+    <header class="bg-blue-700 text-white h-[70px] px-6 flex justify-between items-center shadow-md relative z-[1000]">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 p-2 rounded-lg"><svg width="24" height="24" fill="white" viewBox="0 0 24 24"><path d="M18 11h-12c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h1c0 1.1.9 2 2 2s2-.9 2-2h4c0 1.1.9 2 2 2s2-.9 2-2h1c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zm-12 10c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm1-5h-14v-3h14v3z"/></svg></div>
-            <h1 class="text-xl font-extrabold tracking-tight">ISRAEL <span class="text-blue-400 font-light">BUS RADAR</span></h1>
+            <div class="text-2xl">🚌</div>
+            <h1 class="text-xl font-bold tracking-tight">אוטובוסים בזמן אמת <span class="text-blue-200 font-light">ישראל</span></h1>
         </div>
         <div class="flex items-center gap-4">
-            <div id="loader" class="hidden"><div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent"></div></div>
-            <div id="status-tag" class="text-[10px] bg-slate-800 px-3 py-1 rounded-full border border-slate-700">ממתין למפתח API</div>
+            <div id="status" class="text-[10px] bg-blue-800 px-3 py-1 rounded-full border border-blue-600">טוען נתונים...</div>
+            <button onclick="fetchData()" class="bg-white text-blue-700 px-4 py-1 rounded-lg text-sm font-bold hover:bg-blue-50 transition">רענן</button>
         </div>
-    </nav>
+    </header>
 
-    <div class="flex h-full">
+    <main class="flex">
         <!-- Sidebar -->
-        <aside class="sidebar w-80 bg-white border-l shadow-inner hidden md:flex flex-col z-[500]">
-            <div class="p-4 border-b bg-slate-50">
-                <input type="text" id="bus-search" placeholder="חפש מספר קו..." class="w-full p-2 border rounded-lg outline-none focus:border-blue-500 text-sm">
+        <aside class="w-80 bg-white border-l shadow-xl hidden md:flex flex-col z-[500]" style="height: calc(100vh - 70px);">
+            <div class="p-4 bg-gray-50 border-b">
+                <h2 class="font-bold text-gray-700 text-sm italic">דיווחים אחרונים (SIRI)</h2>
             </div>
-            <div id="list-container" class="flex-1 overflow-y-auto divide-y">
-                <div class="p-8 text-center text-slate-400">
-                    <p class="text-sm font-bold mb-2">ברוכים הבאים</p>
-                    <p class="text-xs">הכנס API Key בהגדרות כדי להתחיל</p>
-                    <button onclick="askForApiKey()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold">הזן מפתח API</button>
-                </div>
+            <div id="bus-list" class="flex-1 overflow-y-auto divide-y divide-gray-100">
+                <!-- כאן תופיע רשימת האוטובוסים -->
+                <p class="p-4 text-gray-400 text-sm italic">מחפש שידורי GPS...</p>
             </div>
         </aside>
 
-        <!-- Map -->
-        <div id="map"></div>
-    </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- Map Container -->
+        <div id="map" class="flex-1"></div>
+    </main>
 
     <script>
-        // --- הגדרות מערכת ---
-        let API_KEY = localStorage.getItem('transit_api_key') || "";
-        let busMarkers = {};
-        const map = L.map('map', { zoomControl: false }).setView([32.0853, 34.7818], 13);
+        // --- הגדרות מפה ---
+        // מיקוד ראשוני על ישראל
+        const map = L.map('map', { zoomControl: false }).setView([32.0853, 34.7818], 12);
         
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '©OpenStreetMap'
+        // טעינת שכבת המפה (חינמי מ-OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
         L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-        function askForApiKey() {
-            const key = prompt("אנא הזן את ה-API Key שקיבלת מ-Transit.land:");
-            if (key) {
-                localStorage.setItem('transit_api_key', key);
-                API_KEY = key;
-                fetchData();
+        let markers = {}; // שומר את המרקרים על המפה למניעת כפילויות
+
+        // --- שאילתת GraphQL לשרתי סטרייד ---
+        const STRIDE_ENDPOINT = "https://open-bus-stride-api.hasadna.org.il/graphql";
+        
+        const query = `
+        query {
+          siri_vehicle_locations(order_by: {recorded_at_time: desc}, limit: 150) {
+            id
+            latitude
+            longitude
+            recorded_at_time
+            velocity
+            siri_ride {
+              gtfs_ride {
+                gtfs_route {
+                  route_short_name
+                  route_long_name
+                }
+              }
             }
-        }
+          }
+        }`;
 
+        // --- פונקציית משיכת נתונים ---
         async function fetchData() {
-            if (!API_KEY) return;
-            
-            document.getElementById('loader').classList.remove('hidden');
-            const statusTag = document.getElementById('status-tag');
-
-            // Transit.land API - מחזיר נתונים בזמן אמת בפורמט JSON נקי
-            // כאן אנחנו מבקשים את האוטובוסים באזור המרכז
-            const url = `https://transit.land/api/v2/rest/vehicles?api_key=${API_KEY}&bbox=34.6,31.9,35.0,32.2`;
+            const statusEl = document.getElementById('status');
+            statusEl.innerText = "מעדכן...";
 
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("API Error");
-                
-                const data = await response.json();
-                const vehicles = data.vehicles;
+                // פנייה ישירה ל-API ללא פרוקסי
+                const response = await fetch(STRIDE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
 
-                updateMap(vehicles);
-                updateList(vehicles);
-                
-                statusTag.innerText = `מחובר | ${vehicles.length} אוטובוסים`;
-                statusTag.classList.replace('bg-slate-800', 'bg-green-900');
-            } catch (err) {
-                console.error(err);
-                statusTag.innerText = "שגיאת API - בדוק מפתח";
-                statusTag.classList.replace('bg-slate-800', 'bg-red-900');
-            } finally {
-                document.getElementById('loader').classList.add('hidden');
+                const result = await response.json();
+                const buses = result.data.siri_vehicle_locations;
+
+                updateUI(buses);
+                statusEl.innerText = `עודכן: ${new Date().toLocaleTimeString('he-IL')}`;
+            } catch (error) {
+                console.error("Error:", error);
+                statusEl.innerText = "שגיאת תקשורת";
             }
         }
 
-        function updateMap(vehicles) {
-            vehicles.forEach(v => {
-                const [lng, lat] = v.geometry.coordinates;
-                const routeName = v.route_short_name || "??";
-                const busId = v.id;
+        // --- עדכון המפה והרשימה ---
+        function updateUI(buses) {
+            const listContainer = document.getElementById('bus-list');
+            listContainer.innerHTML = ""; // ניקוי רשימה
 
-                if (busMarkers[busId]) {
-                    busMarkers[busId].setLatLng([lat, lng]);
+            // רשימת IDs שהגיעו עכשיו
+            const currentIds = buses.map(b => b.id);
+
+            // הסרת מרקרים ישנים שלא נמצאים בדו"ח האחרון
+            Object.keys(markers).forEach(id => {
+                if (!currentIds.includes(parseInt(id))) {
+                    map.removeLayer(markers[id]);
+                    delete markers[id];
+                }
+            });
+
+            buses.forEach(bus => {
+                if (!bus.latitude || !bus.longitude) return;
+
+                const routeName = bus.siri_ride?.gtfs_ride?.gtfs_route?.route_short_name || "?";
+                const longName = bus.siri_ride?.gtfs_ride?.gtfs_route?.route_long_name || "קו לא מזוהה";
+                const lastSeen = new Date(bus.recorded_at_time).toLocaleTimeString('he-IL');
+
+                // 1. עדכון המפה
+                if (markers[bus.id]) {
+                    // אם האוטובוס כבר על המפה, רק נזיז אותו
+                    markers[bus.id].setLatLng([bus.latitude, bus.longitude]);
                 } else {
+                    // יצירת אייקון עם מספר הקו
                     const icon = L.divIcon({
-                        className: 'custom-div-icon',
-                        html: `<div class="bus-marker"><div class="bus-number">${routeName}</div></div>`,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 30]
+                        className: 'bus-div-icon',
+                        html: `<div>${routeName}</div>`,
+                        iconSize: [26, 26]
                     });
 
-                    const marker = L.marker([lat, lng], { icon: icon })
-                        .bindPopup(`<b>קו ${routeName}</b><br>כיוון: ${v.trip_headsign || 'לא ידוע'}`)
-                        .addTo(map);
+                    const marker = L.marker([bus.latitude, bus.longitude], { icon: icon })
+                        .bindPopup(`<b>קו ${routeName}</b><br>${longName}<br><small>עודכן: ${lastSeen}</small>`);
                     
-                    busMarkers[busId] = marker;
+                    marker.addTo(map);
+                    markers[bus.id] = marker;
                 }
+
+                // 2. עדכון הרשימה בצד
+                const item = document.createElement('div');
+                item.className = "p-3 hover:bg-blue-50 cursor-pointer transition text-sm";
+                item.innerHTML = `
+                    <div class="flex justify-between font-bold text-blue-800">
+                        <span>קו ${routeName}</span>
+                        <span class="text-[10px] text-gray-400">${lastSeen}</span>
+                    </div>
+                    <div class="text-[11px] text-gray-500 truncate">${longName}</div>
+                `;
+                item.onclick = () => {
+                    map.setView([bus.latitude, bus.longitude], 16);
+                    markers[bus.id].openPopup();
+                };
+                listContainer.appendChild(item);
             });
         }
 
-        function updateList(vehicles) {
-            const container = document.getElementById('list-container');
-            const searchTerm = document.getElementById('bus-search').value;
+        // --- הפעלה אוטומטית ---
+        fetchData();
+        setInterval(fetchData, 15000); // רענון אוטומטי כל 15 שניות
 
-            const filtered = vehicles.filter(v => (v.route_short_name || "").includes(searchTerm));
-
-            container.innerHTML = filtered.slice(0, 30).map(v => `
-                <div class="p-4 hover:bg-blue-50 cursor-pointer transition" onclick="focusBus(${v.geometry.coordinates[1]}, ${v.geometry.coordinates[0]}, '${v.id}')">
-                    <div class="flex justify-between items-center">
-                        <span class="font-black text-blue-600 text-lg">קו ${v.route_short_name || '?'}</span>
-                        <span class="text-[10px] bg-slate-100 px-2 py-1 rounded">פעיל</span>
-                    </div>
-                    <div class="text-xs text-slate-500 truncate mt-1">${v.trip_headsign || 'יעד לא מוגדר'}</div>
-                </div>
-            `).join('');
-        }
-
-        function focusBus(lat, lng, id) {
-            map.setView([lat, lng], 16);
-            if (busMarkers[id]) busMarkers[id].openPopup();
-        }
-
-        // חיפוש בזמן הקלדה
-        document.getElementById('bus-search').oninput = fetchData;
-
-        // הפעלה אוטומטית
-        if (API_KEY) {
-            fetchData();
-            setInterval(fetchData, 15000); // רענון כל 15 שניות
-        }
     </script>
 </body>
 </html>
