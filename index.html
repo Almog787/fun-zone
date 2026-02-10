@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Open Bus Live - Stride API</title>
+    <title>Open Bus Live - GitHub Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -11,16 +11,9 @@
         body { font-family: 'Assistant', sans-serif; }
         #map { height: calc(100vh - 80px); width: 100%; }
         .bus-icon {
-            background-color: #3b82f6;
-            border: 2px solid white;
-            border-radius: 50%;
-            text-align: center;
-            color: white;
-            font-weight: bold;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background-color: #3b82f6; border: 2px solid white; border-radius: 50%;
+            text-align: center; color: white; font-weight: bold; font-size: 11px;
+            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
     </style>
@@ -30,26 +23,25 @@
     <header class="bg-blue-900 text-white p-4 shadow-lg flex flex-wrap justify-between items-center z-[1001] relative">
         <div class="flex items-center gap-4">
             <h1 class="text-xl font-black italic tracking-tighter text-blue-100">STRIDE <span class="text-blue-400 font-bold">LIVE</span></h1>
-            <div id="status" class="text-xs bg-blue-800 px-3 py-1 rounded-full">מאתחל...</div>
+            <div id="status" class="text-xs bg-blue-800 px-3 py-1 rounded-full italic font-bold">טוען...</div>
         </div>
         
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2 bg-blue-800 p-1 px-3 rounded-lg border border-blue-700">
-                <label for="refresh-rate" class="text-xs font-bold text-blue-200">קצב רענון:</label>
-                <select id="refresh-rate" onchange="updateRefreshInterval(this.value)" class="bg-transparent text-white text-sm outline-none font-bold cursor-pointer">
-                    <option value="5000">5 שניות</option>
+                <label for="refresh-rate" class="text-xs font-bold text-blue-200">רענון:</label>
+                <select id="refresh-rate" onchange="updateRefreshInterval(this.value)" class="bg-transparent text-white text-sm outline-none font-bold">
                     <option value="10000" selected>10 שניות</option>
                     <option value="30000">30 שניות</option>
                 </select>
             </div>
-            <button onclick="fetchBuses()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-1 rounded-lg font-bold text-sm transition-all shadow-md">רענן כעת</button>
+            <button onclick="fetchBuses()" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-1 rounded-lg font-bold text-sm shadow-md">רענן כעת</button>
         </div>
     </header>
 
     <div class="flex flex-col md:flex-row h-screen">
-        <aside class="w-full md:w-80 bg-white shadow-xl z-10 overflow-hidden flex flex-col hidden md:flex" style="height: calc(100vh - 80px);">
+        <aside class="w-full md:w-80 bg-white shadow-xl z-10 overflow-hidden hidden md:flex flex-col" style="height: calc(100vh - 80px);">
             <div id="bus-list" class="flex-1 overflow-y-auto p-4 space-y-2">
-                <p class="text-gray-400 text-center py-10">ממתין לנתונים...</p>
+                <p class="text-gray-400 text-center py-10 italic">מתחבר לשרתי הנתונים...</p>
             </div>
         </aside>
         <div class="flex-1 relative">
@@ -75,7 +67,6 @@
             latitude
             longitude
             recorded_at_time
-            velocity
             siri_ride {
               gtfs_ride {
                 gtfs_route {
@@ -91,36 +82,30 @@
             const statusEl = document.getElementById('status');
             statusEl.innerText = "מעדכן...";
             
+            // שימוש בפרוקסי לעקיפת חסימת CORS
+            const proxy = "https://corsproxy.io/?";
+            const targetUrl = "https://open-bus-stride-api.hasadna.org.il/graphql";
+            
             try {
-                const response = await fetch('https://open-bus-stride-api.hasadna.org.il/graphql', {
+                const response = await fetch(proxy + encodeURIComponent(targetUrl), {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: STRIDE_QUERY })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP Error: ${response.status}`);
-                }
+                if (!response.ok) throw new Error("Server Error");
 
                 const result = await response.json();
-                
-                if (result.errors) {
-                    console.error("GraphQL Errors:", result.errors);
-                    throw new Error("שגיאה בשאילתה");
-                }
-
                 const buses = result.data.siri_vehicle_locations;
+                
                 updateMap(buses);
                 updateList(buses);
                 
                 statusEl.innerText = `עודכן: ${new Date().toLocaleTimeString('he-IL')}`;
                 statusEl.className = "text-xs bg-green-700 px-3 py-1 rounded-full";
             } catch (error) {
-                console.error("Detailed Error:", error);
-                statusEl.innerText = "שגיאה בחיבור";
+                console.error("CORS Bypass Error:", error);
+                statusEl.innerText = "שגיאת חיבור (CORS)";
                 statusEl.className = "text-xs bg-red-700 px-3 py-1 rounded-full";
             }
         }
@@ -147,7 +132,7 @@
                         iconSize: [26, 26]
                     });
                     const marker = L.marker([bus.latitude, bus.longitude], { icon: icon })
-                        .bindPopup(`קו ${routeName}: ${bus.siri_ride?.gtfs_ride?.gtfs_route?.route_long_name || ''}`);
+                        .bindPopup(`<b>קו ${routeName}</b><br>${bus.siri_ride?.gtfs_ride?.gtfs_route?.route_long_name || ''}`);
                     marker.addTo(map);
                     busMarkers[bus.id] = marker;
                 }
@@ -156,13 +141,18 @@
 
         function updateList(buses) {
             const listContainer = document.getElementById('bus-list');
-            listContainer.innerHTML = buses.slice(0, 30).map(bus => `
-                <div class="p-3 bg-white border rounded-lg shadow-sm hover:border-blue-500 cursor-pointer" 
-                     onclick="map.setView([${bus.latitude}, ${bus.longitude}], 16)">
-                    <div class="font-black text-blue-600">קו ${bus.siri_ride?.gtfs_ride?.gtfs_route?.route_short_name || '?'}</div>
+            listContainer.innerHTML = buses.slice(0, 40).map(bus => `
+                <div class="p-3 bg-white border rounded-lg shadow-sm hover:border-blue-500 cursor-pointer transition-all" 
+                     onclick="focusBus(${bus.latitude}, ${bus.longitude}, ${bus.id})">
+                    <div class="font-black text-blue-600 italic">קו ${bus.siri_ride?.gtfs_ride?.gtfs_route?.route_short_name || '?'}</div>
                     <div class="text-[10px] text-gray-500 truncate">${bus.siri_ride?.gtfs_ride?.gtfs_route?.route_long_name || ''}</div>
                 </div>
             `).join('');
+        }
+
+        function focusBus(lat, lng, id) {
+            map.setView([lat, lng], 16);
+            if (busMarkers[id]) busMarkers[id].openPopup();
         }
 
         function updateRefreshInterval(val) {
@@ -172,6 +162,7 @@
             fetchBuses();
         }
 
+        // הפעלה
         fetchBuses();
         refreshTimer = setInterval(fetchBuses, currentRate);
     </script>
