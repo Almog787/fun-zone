@@ -3,380 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GovData Pro - פורטל הנתונים הממשלתי</title>
+    <title>מערכת ניטור גלובלית - Windy & NASA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap');
-        body { font-family: 'Assistant', sans-serif; background-color: #f1f5f9; }
-        .glass-header { background: rgba(30, 58, 138, 0.95); backdrop-filter: blur(10px); }
-        .sidebar { height: calc(100vh - 64px); scrollbar-width: thin; }
-        .data-table-container { max-height: calc(100vh - 350px); overflow: auto; }
-        th { position: sticky; top: 0; background: #f8fafc; z-index: 10; border-bottom: 2px solid #e2e8f0; }
-        .favorite-active { color: #f59e0b !important; }
-        .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;400;700;800&family=Orbitron:wght@400;900&display=swap');
+        
+        body { 
+            font-family: 'Assistant', sans-serif; 
+            background-color: #05070a; 
+            color: #e2e8f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        /* עיצוב חדר בקרה */
+        .panel {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        }
+
+        .screen-glow {
+            box-shadow: inset 0 0 20px rgba(37, 99, 235, 0.1), 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* סרגל גלילה מעוצב */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .live-tag {
+            animation: blink 1.5s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        iframe { border-radius: 8px; }
     </style>
 </head>
-<body class="overflow-hidden">
+<body class="p-4 flex flex-col gap-4">
 
-    <!-- Navbar -->
-    <header class="glass-header text-white h-16 px-6 flex justify-between items-center shadow-2xl relative z-50">
-        <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
-            <i class="fas fa-chart-line text-2xl text-blue-400"></i>
-            <h1 class="text-xl font-black tracking-tight">GOVDATA <span class="text-blue-300 font-light text-sm">PRO 3.0</span></h1>
-        </div>
-
-        <div class="flex-1 max-w-2xl px-10">
-            <div class="relative group">
-                <input type="text" id="main-search" placeholder="חפש מאגר (למשל: רכב, בתי ספר, תקציב...)" 
-                    class="w-full bg-blue-900/50 text-white placeholder-blue-300 border border-blue-700 rounded-xl py-2 px-10 focus:ring-2 focus:ring-blue-400 focus:bg-blue-800 outline-none transition-all">
-                <i class="fas fa-search absolute right-4 top-3 text-blue-300"></i>
+    <!-- Header -->
+    <header class="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-800 shadow-2xl">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
+                <i class="fas fa-satellite-dish text-2xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="orbitron text-xl font-black tracking-widest text-blue-400">GLOBAL <span class="text-white">COMMAND</span></h1>
+                <p class="text-[10px] uppercase tracking-[0.4em] text-slate-500 font-bold">Satellite & Ground Surveillance System</p>
             </div>
         </div>
-
-        <div class="flex items-center gap-4">
-            <button onclick="showFavorites()" class="hover:text-amber-400 transition flex items-center gap-2">
-                <i class="fas fa-star"></i>
-                <span class="hidden md:inline text-xs font-bold">מועדפים</span>
+        
+        <div class="flex items-center gap-6">
+            <div class="hidden md:block text-left">
+                <div id="live-clock" class="orbitron text-lg font-bold text-white">00:00:00</div>
+                <div class="text-[9px] text-blue-500 font-bold uppercase text-right">System Local Time</div>
+            </div>
+            <button onclick="openSettings()" class="p-3 hover:bg-slate-800 rounded-full transition">
+                <i class="fas fa-cog text-slate-400"></i>
             </button>
         </div>
     </header>
 
-    <div class="flex">
-        <!-- Sidebar -->
-        <aside class="sidebar w-80 bg-white border-l shadow-xl flex flex-col z-40">
-            <!-- Filter Tabs -->
-            <div class="flex border-b text-xs font-bold uppercase text-slate-500">
-                <button onclick="toggleSidebarTab('results')" id="tab-results-btn" class="flex-1 p-3 border-b-2 border-blue-600 text-blue-600">תוצאות</button>
-                <button onclick="toggleSidebarTab('orgs')" id="tab-orgs-btn" class="flex-1 p-3 border-b-2 border-transparent">משרדים</button>
-            </div>
-
-            <!-- Tab: Results -->
-            <div id="sidebar-results" class="flex-1 overflow-y-auto">
-                <div id="datasets-list" class="divide-y divide-slate-100">
-                    <div class="p-10 text-center text-slate-400 italic">חפש מאגר כדי להתחיל</div>
+    <!-- Main Grid -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 overflow-hidden">
+        
+        <!-- Left Column: NASA & Space -->
+        <div class="lg:col-span-3 flex flex-col gap-4 overflow-hidden">
+            
+            <!-- Main Monitor (NASA Live) -->
+            <div class="flex-1 panel p-2 flex flex-col screen-glow relative">
+                <div class="flex justify-between items-center p-2">
+                    <span class="text-[10px] font-black uppercase text-blue-400 tracking-tighter">
+                        <i class="fas fa-rocket mr-1"></i> Feed: NASA_TV_ISS_STREAM
+                    </span>
+                    <span class="text-red-500 text-[10px] font-bold live-tag">
+                        ● LIVE CONNECTION
+                    </span>
+                </div>
+                <div class="flex-1 bg-black rounded-lg overflow-hidden relative">
+                    <!-- NASA Live YouTube Feed -->
+                    <iframe class="absolute inset-0 w-full h-full" 
+                        src="https://www.youtube.com/embed/jPTD2gnZFUw?autoplay=1&mute=1&controls=0&modestbranding=1" 
+                        title="NASA Live" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                    
+                    <!-- Overlay Data -->
+                    <div class="absolute top-4 left-4 p-2 bg-black/40 text-[9px] font-mono rounded border border-white/10 pointer-events-none">
+                        LAT: <span id="mock-lat">0.000</span><br>
+                        LNG: <span id="mock-lng">0.000</span><br>
+                        ALT: 408 KM
+                    </div>
                 </div>
             </div>
 
-            <!-- Tab: Orgs -->
-            <div id="sidebar-orgs" class="hidden flex-1 overflow-y-auto">
-                <div id="orgs-list" class="divide-y divide-slate-100">
-                    <!-- Organizations will load here -->
+            <!-- Bottom: Windy Webcams Israel Selection -->
+            <div class="h-1/3 panel p-4 flex flex-col gap-3">
+                <h3 class="text-xs font-bold uppercase text-slate-500 border-b border-slate-800 pb-2">Ground Units: Israel Region</h3>
+                <div id="israel-cams" class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto pr-2">
+                    <!-- Windy Israel Cameras will load here -->
+                    <div class="animate-pulse bg-slate-800 rounded-lg"></div>
+                    <div class="animate-pulse bg-slate-800 rounded-lg"></div>
+                    <div class="animate-pulse bg-slate-800 rounded-lg"></div>
+                    <div class="animate-pulse bg-slate-800 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Windy Search & Global Cams -->
+        <aside class="panel flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-slate-800 bg-slate-900/50">
+                <h3 class="orbitron text-xs font-bold text-blue-400 mb-4">GLOBAL SEARCH</h3>
+                <div class="relative">
+                    <input type="text" id="cam-search" placeholder="Enter City/Country..." 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 pl-10 text-xs focus:border-blue-500 outline-none transition shadow-inner">
+                    <i class="fas fa-search absolute left-3 top-3.5 text-slate-500"></i>
+                </div>
+            </div>
+
+            <div id="search-results" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Search results injected here -->
+                <div class="text-center p-10 text-slate-600 text-xs italic">
+                    Search for a location to view live ground feeds
                 </div>
             </div>
         </aside>
 
-        <!-- Main Area -->
-        <main class="flex-1 sidebar overflow-y-auto p-6 relative">
-            
-            <!-- Welcome View -->
-            <div id="welcome-screen" class="h-full flex flex-col justify-center items-center text-slate-400">
-                <div class="bg-white p-10 rounded-3xl shadow-sm text-center max-w-md">
-                    <i class="fas fa-university text-6xl mb-6 text-blue-100"></i>
-                    <h2 class="text-2xl font-bold text-slate-700 mb-2">ברוכים הבאים ל-GovData Pro</h2>
-                    <p class="text-sm mb-6">כלי הניתוח והחילוץ המתקדם למאגרי המידע הפתוחים של ממשלת ישראל.</p>
-                    <div class="grid grid-cols-2 gap-4 text-xs">
-                        <div class="p-3 bg-slate-50 rounded-xl"><b>חפש</b> מאגרים</div>
-                        <div class="p-3 bg-slate-50 rounded-xl"><b>נתח</b> בטבלה</div>
-                        <div class="p-3 bg-slate-50 rounded-xl"><b>סנן</b> משרדים</div>
-                        <div class="p-3 bg-slate-50 rounded-xl"><b>ייצא</b> ל-Excel</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Data Content View -->
-            <div id="data-view" class="hidden space-y-6">
-                <!-- Info Card -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-start">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
-                            <h2 id="dataset-title" class="text-2xl font-black text-slate-800"></h2>
-                            <button id="fav-btn" class="text-slate-300 hover:text-amber-400 text-xl transition"><i class="fas fa-star"></i></button>
-                        </div>
-                        <p id="dataset-description" class="text-slate-500 text-sm leading-relaxed max-w-3xl"></p>
-                        <div id="resources-tabs" class="flex flex-wrap gap-2 mt-4"></div>
-                    </div>
-                    <div id="org-badge" class="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-xs font-bold shadow-sm"></div>
-                </div>
-
-                <!-- Table Card -->
-                <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                    <div class="p-4 bg-slate-800 text-white flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div class="flex items-center gap-4">
-                            <span class="text-sm font-bold"><i class="fas fa-table mr-2"></i> <span id="active-res-name">בחר קובץ</span></span>
-                            <div class="h-4 w-px bg-slate-600"></div>
-                            <div class="flex items-center gap-2">
-                                <input type="text" id="table-filter" placeholder="חיפוש מהיר בתוך הטבלה..." 
-                                    class="bg-slate-700 text-xs text-white border-none rounded-lg px-4 py-1.5 focus:ring-1 focus:ring-blue-400 outline-none w-64">
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="exportToCSV()" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg transition font-bold">
-                                <i class="fas fa-file-export mr-1"></i> ייצוא CSV
-                            </button>
-                            <div class="flex bg-slate-700 rounded-lg p-1">
-                                <button onclick="changePage(-1)" class="px-2 hover:text-blue-400"><i class="fas fa-chevron-right"></i></button>
-                                <span id="page-info" class="text-[10px] px-2 self-center">עמוד 1</span>
-                                <button onclick="changePage(1)" class="px-2 hover:text-blue-400"><i class="fas fa-chevron-left"></i></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="data-table-container">
-                        <table class="w-full text-right text-sm">
-                            <thead id="table-head"></thead>
-                            <tbody id="table-body"></tbody>
-                        </table>
-                    </div>
-                    
-                    <div id="no-data-msg" class="hidden p-20 text-center text-slate-400">
-                        <i class="fas fa-info-circle text-4xl mb-4 block"></i>
-                        קובץ זה אינו ניתן לתצוגה מקוונת. נסה להוריד אותו ישירות.
-                    </div>
-                </div>
-            </div>
-        </main>
     </div>
 
-    <!-- Global Loader -->
-    <div id="loader" class="fixed inset-0 bg-white/60 z-[100] hidden flex justify-center items-center backdrop-blur-sm">
-        <div class="flex flex-col items-center">
-            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
-            <p class="mt-4 font-bold text-blue-900 animate-pulse">מושך נתונים מהשרת...</p>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[2000]">
+        <div class="panel w-full max-w-md p-8 shadow-2xl border-blue-500/30">
+            <h2 class="orbitron text-lg font-bold text-white mb-4">API CONFIGURATION</h2>
+            <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+                כדי להשתמש בחיפוש מצלמות מלא של Windy, עליך להזין מפתח API. <br>
+                ניתן להשיג מפתח חינם בכתובת: <a href="https://api.windy.com/" class="text-blue-400 underline">api.windy.com</a>
+            </p>
+            <input type="text" id="windy-key" placeholder="Enter Windy API Key..." 
+                class="w-full bg-black border border-slate-700 rounded-lg p-3 text-sm mb-4 outline-none focus:border-blue-500">
+            <div class="flex gap-2">
+                <button onclick="saveSettings()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">שמור</button>
+                <button onclick="closeSettings()" class="flex-1 bg-slate-700 text-white py-2 rounded-lg font-bold">סגור</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = "https://data.gov.il/api/3/action/";
-        let currentDataset = null;
-        let currentResourceId = null;
-        let currentTableData = [];
-        let currentPage = 0;
-        let debounceTimer;
-
-        // --- Initialization ---
-        window.onload = () => {
-            loadOrganizations();
-            initSearch();
-        };
-
-        function initSearch() {
-            document.getElementById('main-search').addEventListener('input', (e) => {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => search(e.target.value), 500);
-            });
-
-            document.getElementById('table-filter').addEventListener('input', (e) => {
-                filterLocalTable(e.target.value);
-            });
+        // --- מצב המערכת ---
+        let WINDY_KEY = localStorage.getItem('windy_api_key') || "";
+        
+        // --- שעון מערכת ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toTimeString().split(' ')[0];
+            // Mock GPS data
+            document.getElementById('mock-lat').innerText = (Math.random() * 180 - 90).toFixed(3);
+            document.getElementById('mock-lng').innerText = (Math.random() * 360 - 180).toFixed(3);
         }
+        setInterval(updateClock, 1000);
 
-        // --- API Functions ---
+        // --- Windy API: מצלמות בישראל ---
+        // הערה: בגלל שאין מפתח כברירת מחדל, נשתמש ב-Embeds ציבוריים מוגדרים מראש
+        async function loadIsraelCams() {
+            const container = document.getElementById('israel-cams');
+            
+            // רשימת מצלמות מעניינות בישראל (IDs מ-Windy/Webcams.travel)
+            const israelFeeds = [
+                { title: "Tel Aviv Beach", id: "1356079977" },
+                { title: "Jerusalem Old City", id: "1515286542" },
+                { title: "Eilat Marina", id: "1488667500" },
+                { title: "Haifa Port", id: "1172828210" }
+            ];
 
-        async function search(query) {
-            if (query.length < 2) return;
-            toggleSidebarTab('results');
-            showLoader(true);
-            try {
-                const res = await fetch(`${API_BASE}package_search?q=${encodeURIComponent(query)}&rows=20`);
-                const data = await res.json();
-                renderDatasets(data.result.results);
-            } catch (e) { console.error(e); }
-            finally { showLoader(false); }
-        }
-
-        async function loadOrganizations() {
-            try {
-                const res = await fetch(`${API_BASE}organization_list?all_fields=true`);
-                const data = await res.json();
-                const list = document.getElementById('orgs-list');
-                list.innerHTML = data.result.map(org => `
-                    <div onclick="filterByOrg('${org.name}')" class="p-3 hover:bg-blue-50 cursor-pointer transition flex items-center justify-between group">
-                        <span class="text-sm font-bold text-slate-700 group-hover:text-blue-600">${org.title}</span>
-                        <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-400">${org.package_count}</span>
+            container.innerHTML = israelFeeds.map(cam => `
+                <div class="relative group cursor-pointer overflow-hidden rounded-lg border border-slate-800 bg-black aspect-video shadow-lg">
+                    <iframe class="w-full h-full opacity-70 group-hover:opacity-100 transition" 
+                        src="https://webcams.windy.com/webcams/public/embed/player/${cam.id}/day" 
+                        frameborder="0"></iframe>
+                    <div class="absolute bottom-0 left-0 right-0 p-1 bg-black/60 text-[8px] font-bold text-center uppercase tracking-widest text-blue-400">
+                        ${cam.title}
                     </div>
-                `).join('');
-            } catch (e) { console.error(e); }
-        }
-
-        async function filterByOrg(orgName) {
-            showLoader(true);
-            toggleSidebarTab('results');
-            try {
-                const res = await fetch(`${API_BASE}package_search?q=organization:${orgName}&rows=50`);
-                const data = await res.json();
-                renderDatasets(data.result.results);
-            } catch (e) { console.error(e); }
-            finally { showLoader(false); }
-        }
-
-        async function loadDataset(id) {
-            showLoader(true);
-            try {
-                const res = await fetch(`${API_BASE}package_show?id=${id}`);
-                const data = await res.json();
-                currentDataset = data.result;
-                renderDatasetView();
-            } catch (e) { console.error(e); }
-            finally { showLoader(false); }
-        }
-
-        async function fetchTable(resourceId, page = 0) {
-            currentResourceId = resourceId;
-            currentPage = page;
-            showLoader(true);
-            try {
-                const offset = page * 100;
-                const res = await fetch(`${API_BASE}datastore_search?resource_id=${resourceId}&limit=100&offset=${offset}`);
-                const data = await res.json();
-                
-                if (data.success && data.result.records.length > 0) {
-                    currentTableData = data.result.records;
-                    renderTable(data.result.fields, data.result.records);
-                    document.getElementById('no-data-msg').classList.add('hidden');
-                    document.querySelector('.data-table-container').classList.remove('hidden');
-                } else {
-                    throw new Error("No API access");
-                }
-            } catch (e) {
-                document.getElementById('no-data-msg').classList.remove('hidden');
-                document.querySelector('.data-table-container').classList.add('hidden');
-            } finally {
-                showLoader(false);
-                document.getElementById('page-info').innerText = `עמוד ${page + 1}`;
-            }
-        }
-
-        // --- Rendering Functions ---
-
-        function renderDatasets(results) {
-            const container = document.getElementById('datasets-list');
-            if (!results.length) {
-                container.innerHTML = `<div class="p-10 text-center text-slate-400">אין תוצאות</div>`;
-                return;
-            }
-            container.innerHTML = results.map(ds => `
-                <div onclick="loadDataset('${ds.id}')" class="p-4 hover:bg-slate-50 cursor-pointer transition border-r-4 border-transparent hover:border-blue-500">
-                    <div class="font-bold text-slate-800 text-sm">${ds.title}</div>
-                    <div class="text-[10px] text-slate-400 mt-1">${ds.organization ? ds.organization.title : 'כללי'}</div>
                 </div>
             `).join('');
         }
 
-        function renderDatasetView() {
-            document.getElementById('welcome-screen').classList.add('hidden');
-            document.getElementById('data-view').classList.remove('hidden');
-            
-            document.getElementById('dataset-title').innerText = currentDataset.title;
-            document.getElementById('dataset-description').innerText = currentDataset.notes || 'אין תיאור זמין למאגר זה.';
-            document.getElementById('org-badge').innerText = currentDataset.organization.title;
-            
-            // Check Favorites
-            updateFavBtnUI();
+        // --- חיפוש מצלמות (דורש מפתח API) ---
+        async function searchCameras() {
+            const query = document.getElementById('cam-search').value;
+            if (query.length < 3) return;
 
-            const tabs = document.getElementById('resources-tabs');
-            tabs.innerHTML = currentDataset.resources.map(r => `
-                <button onclick="fetchTable('${r.id}', 0)" class="text-[10px] font-bold border rounded-lg px-3 py-1.5 transition-all
-                    ${r.id === currentResourceId ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 hover:bg-slate-50'}">
-                    <i class="fas fa-file-code mr-1"></i> ${r.name || 'קובץ ללא שם'}
-                    ${r.datastore_active ? '<span class="mr-1 text-emerald-500">●</span>' : ''}
-                </button>
-            `).join('');
+            const resultsContainer = document.getElementById('search-results');
 
-            // Load first active resource if any
-            const first = currentDataset.resources.find(r => r.datastore_active) || currentDataset.resources[0];
-            fetchTable(first.id, 0);
-        }
+            if (!WINDY_KEY) {
+                resultsContainer.innerHTML = `
+                    <div class="p-4 bg-blue-900/20 rounded-lg border border-blue-800/50 text-[10px] text-blue-300">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        יש להזין מפתח Windy API בהגדרות כדי להשתמש בחיפוש גלובלי חופשי.
+                    </div>
+                `;
+                return;
+            }
 
-        function renderTable(fields, records) {
-            const head = document.getElementById('table-head');
-            const body = document.getElementById('table-body');
-            const cleanFields = fields.filter(f => f.id !== '_id');
+            resultsContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-sync fa-spin"></i> Scanning...</div>';
 
-            head.innerHTML = `<tr>${cleanFields.map(f => `<th class="p-3 text-right text-slate-500 font-extrabold uppercase text-[11px] tracking-tighter">${f.id}</th>`).join('')}</tr>`;
-            
-            const renderRows = (data) => {
-                body.innerHTML = data.map(row => `
-                    <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition">
-                        ${cleanFields.map(f => `<td class="p-3 text-slate-700">${row[f.id] || ''}</td>`).join('')}
-                    </tr>
+            try {
+                // שימוש ב-API של Windy (גרסה 2)
+                const response = await fetch(`https://api.windy.com/api/webcams/v2/list/search=${query}?show=webcams:image,player`, {
+                    headers: { 'x-windy-key': WINDY_KEY }
+                });
+                const data = await response.json();
+
+                if (data.result.webcams.length === 0) {
+                    resultsContainer.innerHTML = '<div class="text-center p-10 text-slate-600">No active units found.</div>';
+                    return;
+                }
+
+                resultsContainer.innerHTML = data.result.webcams.map(cam => `
+                    <div class="panel p-2 space-y-2 border-slate-700 hover:border-blue-500 transition group">
+                        <div class="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase">
+                            <span>ID: ${cam.id}</span>
+                            <span class="text-blue-500">${cam.location.city || cam.location.country}</span>
+                        </div>
+                        <div class="aspect-video bg-black rounded overflow-hidden shadow-inner">
+                             <iframe class="w-full h-full" src="${cam.player.day.embed}" frameborder="0"></iframe>
+                        </div>
+                        <h4 class="text-[10px] font-bold text-slate-300 truncate">${cam.title}</h4>
+                    </div>
                 `).join('');
-            };
 
-            renderRows(records);
-            // Save fields to window for filtering later
-            window.activeFields = cleanFields;
+            } catch (err) {
+                resultsContainer.innerHTML = '<div class="text-center p-10 text-red-500 text-xs font-bold">ERROR: SCAN FAILED</div>';
+            }
         }
 
-        // --- Utility Functions ---
-
-        function filterLocalTable(val) {
-            const query = val.toLowerCase();
-            const filtered = currentTableData.filter(row => 
-                Object.values(row).some(v => String(v).toLowerCase().includes(query))
-            );
-            const body = document.getElementById('table-body');
-            body.innerHTML = filtered.map(row => `
-                <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition">
-                    ${window.activeFields.map(f => `<td class="p-3 text-slate-700">${row[f.id] || ''}</td>`).join('')}
-                </tr>
-            `).join('');
+        // --- הגדרות ---
+        function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
+        function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
+        function saveSettings() {
+            const key = document.getElementById('windy-key').value;
+            localStorage.setItem('windy_api_key', key);
+            WINDY_KEY = key;
+            closeSettings();
+            searchCameras();
         }
 
-        function changePage(delta) {
-            const newPage = Math.max(0, currentPage + delta);
-            if (newPage !== currentPage) fetchTable(currentResourceId, newPage);
-        }
+        // האזנה לחיפוש
+        let debounceTimer;
+        document.getElementById('cam-search').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(searchCameras, 1000);
+        });
 
-        function exportToCSV() {
-            if (!currentTableData.length) return;
-            const headers = window.activeFields.map(f => f.id).join(',');
-            const rows = currentTableData.map(row => window.activeFields.map(f => `"${row[f.id] || ''}"`).join(','));
-            const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + "\n" + rows.join("\n");
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `govdata_export_${new Date().getTime()}.csv`);
-            document.body.appendChild(link);
-            link.click();
-        }
-
-        function toggleSidebarTab(tab) {
-            document.getElementById('sidebar-results').classList.toggle('hidden', tab !== 'results');
-            document.getElementById('sidebar-orgs').classList.toggle('hidden', tab !== 'orgs');
-            document.getElementById('tab-results-btn').classList.toggle('border-blue-600', tab === 'results');
-            document.getElementById('tab-results-btn').classList.toggle('text-blue-600', tab === 'results');
-            document.getElementById('tab-orgs-btn').classList.toggle('border-blue-600', tab === 'orgs');
-            document.getElementById('tab-orgs-btn').classList.toggle('text-blue-600', tab === 'orgs');
-        }
-
-        function showLoader(show) {
-            document.getElementById('loader').classList.toggle('hidden', !show);
-        }
-
-        // --- Favorites Logic ---
-        function toggleFavorite() {
-            let favs = JSON.parse(localStorage.getItem('gov_favs') || '[]');
-            const index = favs.findIndex(f => f.id === currentDataset.id);
-            if (index > -1) favs.splice(index, 1);
-            else favs.push({ id: currentDataset.id, title: currentDataset.title });
-            localStorage.setItem('gov_favs', JSON.stringify(favs));
-            updateFavBtnUI();
-        }
-
-        function updateFavBtnUI() {
-            const favs = JSON.parse(localStorage.getItem('gov_favs') || '[]');
-            const isFav = favs.some(f => f.id === currentDataset.id);
-            document.getElementById('fav-btn').classList.toggle('favorite-active', isFav);
-            document.getElementById('fav-btn').onclick = toggleFavorite;
-        }
-
-        function showFavorites() {
-            const favs = JSON.parse(localStorage.getItem('gov_favs') || '[]');
-            toggleSidebarTab('results');
-            renderDatasets(favs.map(f => ({ id: f.id, title: f.title, organization: { title: 'שמור במועדפים' } })));
-        }
+        // --- הפעלה ---
+        window.onload = () => {
+            loadIsraelCams();
+            if (WINDY_KEY) document.getElementById('windy-key').value = WINDY_KEY;
+        };
     </script>
 </body>
 </html>
