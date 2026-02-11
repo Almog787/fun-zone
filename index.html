@@ -3,255 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorldLink Pro | Global Intelligence Portal</title>
+    <title>EMERGENCY RADAR | Global Crisis Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;700;800&family=Orbitron:wght@500;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&family=Orbitron:wght@400;900&display=swap');
         
         :root {
-            --bg: #030712;
-            --card: #111827;
-            --accent: #3b82f6;
+            --emergency-red: #ff0000;
+            --radar-green: #00ff41;
+            --bg-dark: #050505;
         }
 
         body {
-            background-color: var(--bg);
-            color: #f3f4f6;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            transition: all 0.3s ease;
+            background-color: var(--bg-dark);
+            color: var(--radar-green);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            height: 100vh;
         }
 
         .orbitron { font-family: 'Orbitron', sans-serif; }
-        
-        .glass-panel {
-            background: rgba(17, 24, 39, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 24px;
+
+        .panel {
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            box-shadow: inset 0 0 15px rgba(0, 255, 65, 0.05);
         }
 
-        .stat-card {
-            background: linear-gradient(145deg, #1f2937, #111827);
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            transition: transform 0.3s ease, border-color 0.3s ease;
+        #map {
+            height: 100%;
+            width: 100%;
+            filter: invert(100%) hue-rotate(180deg) brightness(0.6) contrast(1.2);
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--accent);
+        .emergency-pulse {
+            animation: pulse-red 1.5s infinite;
         }
 
-        /* סרגל גלילה */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); border-color: #ff0000; }
+            70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); border-color: #7f0000; }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); border-color: #ff0000; }
+        }
+
+        .scanline {
+            width: 100%; height: 2px; background: rgba(0, 255, 65, 0.1);
+            position: absolute; z-index: 100; pointer-events: none;
+            animation: scan 4s linear infinite;
+        }
+        @keyframes scan { from { top: 0; } to { top: 100%; } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--radar-green); }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="flex flex-col">
+    <div class="scanline"></div>
 
-    <!-- Top Bar -->
-    <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+    <!-- Top Status Bar -->
+    <header class="h-14 panel flex justify-between items-center px-6 border-b border-green-900/50">
         <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <i class="fas fa-globe-americas text-2xl text-white"></i>
-            </div>
-            <div>
-                <h1 class="orbitron text-2xl font-black tracking-tighter">WORLD<span class="text-blue-500">LINK</span></h1>
-                <p class="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-bold" id="ui-subtitle">Global Intelligence OS</p>
-            </div>
+            <i class="fas fa-radiation text-red-500 animate-spin-slow"></i>
+            <h1 class="orbitron text-lg font-black tracking-[0.2em] text-white">EMERGENCY <span class="text-red-600">RADAR</span></h1>
         </div>
-
-        <div class="flex items-center gap-4 glass-panel p-2">
-            <select id="lang-select" onchange="changeLang(this.value)" class="bg-transparent text-xs font-bold outline-none cursor-pointer p-1">
-                <option value="en" class="bg-gray-900">English</option>
-                <option value="he" class="bg-gray-900">עברית</option>
-                <option value="es" class="bg-gray-900">Español</option>
-                <option value="ar" class="bg-gray-900">العربية</option>
-            </select>
-            <div id="clock" class="orbitron text-sm font-bold bg-slate-800 px-4 py-2 rounded-xl border border-white/5">00:00:00</div>
+        <div class="flex items-center gap-8 text-[10px] font-bold">
+            <div id="air-status">AIRCRAFT_SQUAWK: <span class="text-white font-mono">SCANNING...</span></div>
+            <div id="seismic-status">SEISMIC_UNITS: <span class="text-white font-mono">ACTIVE</span></div>
+            <div id="clock" class="orbitron text-sm text-green-400">00:00:00</div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="flex-1 flex overflow-hidden">
         
-        <!-- Left: News & Crypto (4 Cols) -->
-        <div class="lg:col-span-4 space-y-6">
-            <!-- Crypto Pulse -->
-            <div class="glass-panel p-6">
-                <h3 class="text-xs font-black uppercase text-blue-400 mb-4 tracking-widest" id="ui-market">Market Pulse</h3>
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <i class="fab fa-bitcoin text-orange-500 text-xl"></i>
-                            <span class="font-bold">Bitcoin</span>
-                        </div>
-                        <span id="btc-price" class="orbitron text-sm">Loading...</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <i class="fab fa-ethereum text-blue-400 text-xl"></i>
-                            <span class="font-bold">Ethereum</span>
-                        </div>
-                        <span id="eth-price" class="orbitron text-sm">Loading...</span>
-                    </div>
-                </div>
+        <!-- Sidebar: Crisis Feed -->
+        <aside class="w-80 panel border-r border-green-900/30 flex flex-col z-50">
+            <div class="p-4 border-b border-green-900/30 bg-green-900/10">
+                <h2 class="text-xs font-black uppercase tracking-widest flex justify-between">
+                    <span>Live_Event_Log</span>
+                    <span class="text-red-500 animate-pulse">REC</span>
+                </h2>
+            </div>
+            
+            <div id="event-feed" class="flex-1 overflow-y-auto p-4 space-y-4 text-[10px]">
+                <!-- Crisis events will be injected here -->
+                <p class="opacity-40 italic">> Initializing global sensor grid...</p>
             </div>
 
-            <!-- Global News Tracker -->
-            <div class="glass-panel p-6 h-[400px] flex flex-col">
-                <h3 class="text-xs font-black uppercase text-red-500 mb-4 tracking-widest" id="ui-news">World Headlines</h3>
-                <div id="news-feed" class="flex-1 overflow-y-auto space-y-4 pr-2">
-                    <div class="animate-pulse space-y-2">
-                        <div class="h-3 bg-slate-800 rounded w-3/4"></div>
-                        <div class="h-2 bg-slate-800 rounded w-full"></div>
-                    </div>
-                </div>
+            <!-- Language Switcher -->
+            <div class="p-4 border-t border-green-900/30 grid grid-cols-2 gap-2">
+                <button onclick="setLang('en')" class="bg-green-900/20 hover:bg-green-900/40 p-2 rounded text-[10px] font-bold transition">ENGLISH</button>
+                <button onclick="setLang('he')" class="bg-green-900/20 hover:bg-green-900/40 p-2 rounded text-[10px] font-bold transition font-sans">עברית</button>
             </div>
-        </div>
+        </aside>
 
-        <!-- Center: Satellite View (5 Cols) -->
-        <div class="lg:col-span-5 space-y-6">
-            <div class="glass-panel p-2 aspect-video relative overflow-hidden group">
-                <div class="absolute top-4 left-4 z-20 flex items-center gap-2">
-                    <span class="flex h-2 w-2 rounded-full bg-red-500 animate-ping"></span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-white shadow-sm" id="ui-live">Live: ISS Station</span>
-                </div>
-                <iframe class="w-full h-full rounded-2xl" 
-                    src="https://www.youtube.com/embed/jPTD2gnZFUw?autoplay=1&mute=1&controls=0&modestbranding=1" 
-                    frameborder="0" allowfullscreen></iframe>
+        <!-- Main Map Area -->
+        <main class="flex-1 relative">
+            <div id="map"></div>
+            
+            <!-- Bottom HUD Overlay -->
+            <div class="absolute bottom-6 left-6 p-4 panel rounded-lg pointer-events-none z-[1000] border-l-4 border-red-600">
+                <div class="text-[9px] font-bold uppercase mb-1">Alert_Priority_Level</div>
+                <div class="text-xl orbitron font-black text-red-500 uppercase tracking-tighter">Code Red / Squawk 7700</div>
+                <div class="text-[8px] opacity-60 mt-1 uppercase">Automated Satellite Intercept Active</div>
             </div>
+        </main>
+    </div>
 
-            <!-- Weather Global Explorer -->
-            <div class="glass-panel p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xs font-black uppercase text-emerald-400 tracking-widest" id="ui-weather">Weather Explorer</h3>
-                    <input type="text" id="city-search" placeholder="Search City..." onchange="getWeather(this.value)"
-                        class="bg-slate-900 border border-white/10 rounded-lg px-3 py-1 text-xs outline-none focus:border-emerald-500 transition">
-                </div>
-                <div id="weather-res" class="flex items-center justify-between">
-                    <div>
-                        <div id="w-city" class="text-2xl font-black">London</div>
-                        <div id="w-desc" class="text-xs text-slate-500 uppercase font-bold">Clear Sky</div>
-                    </div>
-                    <div id="w-temp" class="orbitron text-4xl font-black">22°C</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right: Search & Discovery (3 Cols) -->
-        <div class="lg:col-span-3 space-y-6">
-            <div class="glass-panel p-6 flex flex-col h-full">
-                <h3 class="text-xs font-black uppercase text-amber-400 mb-4 tracking-widest" id="ui-discover">Country Intelligence</h3>
-                <input type="text" id="country-in" placeholder="Enter Country..." onchange="getCountry(this.value)"
-                    class="bg-slate-900 border border-white/10 rounded-xl p-3 text-xs w-full mb-6 outline-none focus:border-amber-500 transition">
-                
-                <div id="country-data" class="space-y-6 hidden">
-                    <img id="c-flag" class="w-full h-32 object-cover rounded-xl shadow-lg mb-4" src="" alt="">
-                    <div class="grid grid-cols-1 gap-4">
-                        <div class="bg-slate-800/50 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold" id="ui-pop">Population</div>
-                            <div id="c-pop" class="font-bold text-sm">0</div>
-                        </div>
-                        <div class="bg-slate-800/50 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold" id="ui-cur">Currency</div>
-                            <div id="c-cur" class="font-bold text-sm">USD</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- Translations ---
+        // --- Initialization ---
+        const map = L.map('map', { zoomControl: false }).setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+        let markers = [];
+        let currentLang = 'en';
+
         const i18n = {
-            en: { subtitle: "Global Intelligence OS", market: "Market Pulse", news: "World Headlines", live: "Live: ISS Station", weather: "Weather Explorer", discover: "Country Intelligence", pop: "Population", cur: "Currency", dir: "ltr" },
-            he: { subtitle: "מערכת מודיעין גלובלית", market: "דופק שוק", news: "כותרות מהעולם", live: "חי: תחנת החלל", weather: "מזג אוויר עולמי", discover: "מודיעין מדינות", pop: "אוכלוסייה", cur: "מטבע", dir: "rtl" },
-            es: { subtitle: "S.O. de Inteligencia Global", market: "Pulso del Mercado", news: "Titulares Mundiales", live: "En vivo: Estación ISS", weather: "Explorador de Clima", discover: "Inteligencia de País", pop: "Población", cur: "Moneda", dir: "ltr" },
-            ar: { subtitle: "نظام الاستخبارات العالمي", market: "نبض السوق", news: "العناوين العالمية", live: "مباشר: محطة ISS", weather: "מستكشف الطقس", discover: "استخبارات الدول", pop: "عدد السكان", cur: "العملة", dir: "rtl" }
+            en: { title: "EMERGENCY RADAR", aircraft: "AIRCRAFT_SQUAWK", seismic: "SEISMIC_UNITS", dir: "ltr" },
+            he: { title: "מכ\"ם חירום", aircraft: "מטוסי במצוקה", seismic: "פעילות סיסמית", dir: "rtl" }
         };
 
-        function changeLang(lang) {
-            const data = i18n[lang];
-            document.documentElement.setAttribute('dir', data.dir);
-            document.documentElement.setAttribute('lang', lang);
-            document.getElementById('ui-subtitle').innerText = data.subtitle;
-            document.getElementById('ui-market').innerText = data.market;
-            document.getElementById('ui-news').innerText = data.news;
-            document.getElementById('ui-live').innerText = data.live;
-            document.getElementById('ui-weather').innerText = data.weather;
-            document.getElementById('ui-discover').innerText = data.discover;
-            document.getElementById('ui-pop').innerText = data.pop;
-            document.getElementById('ui-cur').innerText = data.cur;
+        function setLang(lang) {
+            currentLang = lang;
+            document.documentElement.dir = i18n[lang].dir;
+            updateEvents(); // Re-render feed
         }
 
         // --- Clock ---
         setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+            document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
         }, 1000);
 
-        // --- Crypto (Binance API) ---
-        async function getCrypto() {
+        // --- OpenSky API (Aircraft in Emergency) ---
+        async function fetchEmergencyPlanes() {
+            const feed = document.getElementById('event-feed');
+            const status = document.getElementById('air-status');
+            
             try {
-                const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbols=["BTCUSDT","ETHUSDT"]');
+                // OpenSky API - Fetching all planes.
+                // In a real scenario, we'd filter for Squawk 7700.
+                const res = await fetch('https://opensky-network.org/api/states/all');
                 const data = await res.json();
-                document.getElementById('btc-price').innerText = '$' + Math.round(data[0].price).toLocaleString();
-                document.getElementById('eth-price').innerText = '$' + Math.round(data[1].price).toLocaleString();
-            } catch (e) {}
-        }
-
-        // --- Weather (Open-Meteo) ---
-        async function getWeather(city = "London") {
-            try {
-                // First get coords (Geocoding)
-                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`);
-                const geoData = await geoRes.json();
-                const { latitude, longitude, name } = geoData.results[0];
                 
-                const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-                const wData = await wRes.json();
+                // Filter planes with squawk 7700 (General Emergency)
+                const emergencies = data.states.filter(s => s[14] === "7700");
                 
-                document.getElementById('w-city').innerText = name;
-                document.getElementById('w-temp').innerText = Math.round(wData.current_weather.temperature) + '°C';
-                document.getElementById('w-desc').innerText = "Wind: " + wData.current_weather.windspeed + " km/h";
-            } catch (e) {}
+                if(emergencies.length > 0) {
+                    status.innerHTML = `AIRCRAFT_SQUAWK: <span class="text-red-500 animate-pulse">${emergencies.length} ACTIVE</span>`;
+                    emergencies.forEach(plane => {
+                        addEvent('AIRCRAFT_EMERGENCY', `Flight ${plane[1]} (Callsign) reported Squawk 7700. Location: ${plane[6]}, ${plane[5]}`, 'red');
+                        addMapMarker(plane[6], plane[5], `EMERGENCY: ${plane[1]}`, 'red');
+                    });
+                } else {
+                    status.innerHTML = `AIRCRAFT_SQUAWK: <span class="text-blue-400">0 DETECTED</span>`;
+                }
+            } catch (e) {
+                console.error("OpenSky Signal Lost");
+            }
         }
 
-        // --- Country Data (REST Countries) ---
-        async function getCountry(name) {
+        // --- USGS API (Earthquakes) ---
+        async function fetchEarthquakes() {
             try {
-                const res = await fetch(`https://restcountries.com/v3.1/name/${name}`);
-                const [data] = await res.json();
-                document.getElementById('country-data').classList.remove('hidden');
-                document.getElementById('c-flag').src = data.flags.svg;
-                document.getElementById('c-pop').innerText = data.population.toLocaleString();
-                const curKey = Object.keys(data.currencies)[0];
-                document.getElementById('c-cur').innerText = data.currencies[curKey].name;
-            } catch (e) {}
-        }
-
-        // --- Mock News (Using Wikipedia for international reach) ---
-        async function getNews() {
-            try {
-                const res = await fetch('https://en.wikipedia.org/api/rest_v1/feed/featured/' + new Date().toISOString().split('T')[0].replace(/-/g, '/'));
+                const res = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson');
                 const data = await res.json();
-                const news = data.mostread.articles.slice(0, 10);
-                document.getElementById('news-feed').innerHTML = news.map(a => `
-                    <div class="border-b border-white/5 pb-3">
-                        <a href="${a.content_urls.desktop.page}" target="_blank" class="text-xs font-bold hover:text-blue-400 transition">${a.titles.normalized}</a>
-                        <p class="text-[10px] text-slate-500 mt-1 line-clamp-2">${a.extract}</p>
-                    </div>
-                `).join('');
-            } catch (e) {}
+                
+                data.features.slice(0, 5).forEach(q => {
+                    const mag = q.properties.mag;
+                    const place = q.properties.place;
+                    const coords = q.geometry.coordinates;
+                    
+                    addEvent('SEISMIC_EVENT', `Magnitude ${mag} earthquake detected near ${place}.`, mag > 6 ? 'red' : 'orange');
+                    addMapMarker(coords[1], coords[0], `QUAKE: ${mag} - ${place}`, mag > 6 ? 'red' : 'orange');
+                });
+            } catch (e) {
+                console.error("Seismic Grid Offline");
+            }
         }
 
-        // --- Init ---
-        getCrypto();
-        getWeather();
-        getNews();
-        setInterval(getCrypto, 10000);
+        // --- UI Helpers ---
+        function addEvent(type, msg, color) {
+            const feed = document.getElementById('event-feed');
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = color === 'red' ? 'text-red-500' : 'text-orange-500';
+            
+            const div = document.createElement('div');
+            div.className = `p-2 border-l-2 ${color === 'red' ? 'border-red-600 bg-red-900/10' : 'border-orange-600 bg-orange-900/10'} mb-2 fade-in`;
+            div.innerHTML = `
+                <div class="flex justify-between font-black mb-1">
+                    <span class="${colorClass}">[${type}]</span>
+                    <span class="opacity-50">${timestamp}</span>
+                </div>
+                <div class="opacity-80">${msg}</div>
+            `;
+            feed.prepend(div);
+        }
+
+        function addMapMarker(lat, lng, title, color) {
+            const markerColor = color === 'red' ? '#ff0000' : '#ffa500';
+            const marker = L.circleMarker([lat, lng], {
+                radius: 10,
+                fillColor: markerColor,
+                color: "#fff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8,
+                className: color === 'red' ? 'emergency-pulse' : ''
+            }).addTo(map).bindPopup(title);
+            
+            markers.push(marker);
+        }
+
+        // --- Run App ---
+        fetchEmergencyPlanes();
+        fetchEarthquakes();
+        setInterval(fetchEmergencyPlanes, 30000); // 30s refresh
+        setInterval(fetchEarthquakes, 60000); // 60s refresh
     </script>
 </body>
 </html>
