@@ -3,227 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMERGENCY RADAR | Global Crisis Monitor</title>
+    <title>EMERGENCY RADAR 3D | Global Tactical Suite</title>
+    
+    <!-- Tailwind & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- CesiumJS for 3D Globe -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&family=Orbitron:wght@400;900&display=swap');
         
-        :root {
-            --emergency-red: #ff0000;
-            --radar-green: #00ff41;
-            --bg-dark: #050505;
-        }
-
         body {
-            background-color: var(--bg-dark);
-            color: var(--radar-green);
+            background-color: #000;
+            color: #00ff41;
             font-family: 'JetBrains Mono', monospace;
             overflow: hidden;
             height: 100vh;
+            margin: 0;
         }
 
-        .orbitron { font-family: 'Orbitron', sans-serif; }
+        /* HUD & UI Layers */
+        #cesiumContainer {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;
+        }
 
-        .panel {
-            background: rgba(10, 10, 10, 0.9);
+        .hud-layer {
+            position: absolute; inset: 0; pointer-events: none; z-index: 10;
+            display: flex; flex-direction: column;
+        }
+
+        .interactive { pointer-events: auto; }
+
+        .panel-glass {
+            background: rgba(5, 10, 5, 0.7);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(0, 255, 65, 0.2);
-            box-shadow: inset 0 0 15px rgba(0, 255, 65, 0.05);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
         }
 
-        #map {
-            height: 100%;
-            width: 100%;
-            filter: invert(100%) hue-rotate(180deg) brightness(0.6) contrast(1.2);
-        }
+        .cinema-hidden { display: none !important; }
 
-        .emergency-pulse {
-            animation: pulse-red 1.5s infinite;
-        }
-
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); border-color: #ff0000; }
-            70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); border-color: #7f0000; }
-            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); border-color: #ff0000; }
-        }
-
-        .scanline {
-            width: 100%; height: 2px; background: rgba(0, 255, 65, 0.1);
+        /* Scanning Line Effect */
+        .radar-scan {
+            width: 100%; height: 2px; background: rgba(0, 255, 65, 0.2);
             position: absolute; z-index: 100; pointer-events: none;
-            animation: scan 4s linear infinite;
+            animation: scan 6s linear infinite;
         }
         @keyframes scan { from { top: 0; } to { top: 100%; } }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: var(--radar-green); }
-    </style>
-</head>
-<body class="flex flex-col">
-    <div class="scanline"></div>
-
-    <!-- Top Status Bar -->
-    <header class="h-14 panel flex justify-between items-center px-6 border-b border-green-900/50">
-        <div class="flex items-center gap-4">
-            <i class="fas fa-radiation text-red-500 animate-spin-slow"></i>
-            <h1 class="orbitron text-lg font-black tracking-[0.2em] text-white">EMERGENCY <span class="text-red-600">RADAR</span></h1>
-        </div>
-        <div class="flex items-center gap-8 text-[10px] font-bold">
-            <div id="air-status">AIRCRAFT_SQUAWK: <span class="text-white font-mono">SCANNING...</span></div>
-            <div id="seismic-status">SEISMIC_UNITS: <span class="text-white font-mono">ACTIVE</span></div>
-            <div id="clock" class="orbitron text-sm text-green-400">00:00:00</div>
-        </div>
-    </header>
-
-    <div class="flex-1 flex overflow-hidden">
-        
-        <!-- Sidebar: Crisis Feed -->
-        <aside class="w-80 panel border-r border-green-900/30 flex flex-col z-50">
-            <div class="p-4 border-b border-green-900/30 bg-green-900/10">
-                <h2 class="text-xs font-black uppercase tracking-widest flex justify-between">
-                    <span>Live_Event_Log</span>
-                    <span class="text-red-500 animate-pulse">REC</span>
-                </h2>
-            </div>
-            
-            <div id="event-feed" class="flex-1 overflow-y-auto p-4 space-y-4 text-[10px]">
-                <!-- Crisis events will be injected here -->
-                <p class="opacity-40 italic">> Initializing global sensor grid...</p>
-            </div>
-
-            <!-- Language Switcher -->
-            <div class="p-4 border-t border-green-900/30 grid grid-cols-2 gap-2">
-                <button onclick="setLang('en')" class="bg-green-900/20 hover:bg-green-900/40 p-2 rounded text-[10px] font-bold transition">ENGLISH</button>
-                <button onclick="setLang('he')" class="bg-green-900/20 hover:bg-green-900/40 p-2 rounded text-[10px] font-bold transition font-sans">עברית</button>
-            </div>
-        </aside>
-
-        <!-- Main Map Area -->
-        <main class="flex-1 relative">
-            <div id="map"></div>
-            
-            <!-- Bottom HUD Overlay -->
-            <div class="absolute bottom-6 left-6 p-4 panel rounded-lg pointer-events-none z-[1000] border-l-4 border-red-600">
-                <div class="text-[9px] font-bold uppercase mb-1">Alert_Priority_Level</div>
-                <div class="text-xl orbitron font-black text-red-500 uppercase tracking-tighter">Code Red / Squawk 7700</div>
-                <div class="text-[8px] opacity-60 mt-1 uppercase">Automated Satellite Intercept Active</div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // --- Initialization ---
-        const map = L.map('map', { zoomControl: false }).setView([20, 0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
-        let markers = [];
-        let currentLang = 'en';
-
-        const i18n = {
-            en: { title: "EMERGENCY RADAR", aircraft: "AIRCRAFT_SQUAWK", seismic: "SEISMIC_UNITS", dir: "ltr" },
-            he: { title: "מכ\"ם חירום", aircraft: "מטוסי במצוקה", seismic: "פעילות סיסמית", dir: "rtl" }
-        };
-
-        function setLang(lang) {
-            currentLang = lang;
-            document.documentElement.dir = i18n[lang].dir;
-            updateEvents(); // Re-render feed
+        /* Red pulse for emergency */
+        .emergency-glow {
+            animation: glow-red 1s infinite alternate;
+        }
+        @keyframes glow-red {
+            from { text-shadow: 0 0 5px #ff0000; color: #ff4444; }
+            to { text-shadow: 0 0 20px #ff0000; color: #ff0000; }
         }
 
-        // --- Clock ---
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Globe Container -->
+    <div id="cesiumContainer"></div>
+
+    <!-- UI Overlay -->
+    <div class="hud-layer">
+        <div class="radar-scan"></div>
+
+        <!-- Top Navigation -->
+        <header id="main-header" class="h-16 panel-glass flex justify-between items-center px-6 border-b border-green-900/30">
+            <div class="flex items-center gap-4">
+                <i class="fas fa-crosshairs text-red-600 animate-pulse text-xl"></i>
+                <div>
+                    <h1 class="orbitron text-lg font-black tracking-widest text-white">TACTICAL_RADAR <span class="text-green-500">3D</span></h1>
+                    <p class="text-[8px] uppercase tracking-[0.4em] opacity-60">Global Emergency Intercept System</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6 interactive">
+                <div class="flex items-center gap-4 text-[10px] font-bold mr-4 border-r border-green-900/30 pr-6">
+                    <button onclick="toggleAudio()" id="audio-toggle" class="hover:text-white transition">
+                        <i class="fas fa-volume-up mr-1"></i> AUDIO: ON
+                    </button>
+                    <button onclick="toggleCinema()" class="hover:text-white transition">
+                        <i class="fas fa-expand mr-1"></i> CINEMA MODE
+                    </button>
+                </div>
+                <div id="clock" class="orbitron text-lg font-bold text-green-400">00:00:00</div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- Sidebar: Crisis Log -->
+            <aside id="main-sidebar" class="w-80 panel-glass m-4 rounded-2xl border border-green-900/30 flex flex-col interactive overflow-hidden">
+                <div class="p-4 border-b border-green-900/30 bg-green-900/5 flex justify-between items-center">
+                    <span class="text-xs font-black uppercase tracking-widest">System_Log</span>
+                    <span class="text-[8px] bg-red-600 text-white px-1 rounded animate-pulse">LIVE_STREAM</span>
+                </div>
+                
+                <div id="event-feed" class="flex-1 overflow-y-auto p-4 space-y-4 text-[10px] scroll-smooth">
+                    <div class="opacity-40 italic">> Establishing satellite link...</div>
+                    <div class="opacity-40 italic">> 3D Map tiles loaded.</div>
+                </div>
+
+                <div class="p-4 bg-black/40 text-[9px] border-t border-green-900/30">
+                    <div class="flex justify-between mb-1">
+                        <span>AIRCRAFT_UNITS:</span>
+                        <span id="stat-planes" class="text-white">SCANNING</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>SEISMIC_GEO:</span>
+                        <span id="stat-seismic" class="text-white">MONITORING</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Bottom Floating HUD -->
+            <div id="bottom-hud" class="absolute bottom-6 left-1/2 -translate-x-1/2 panel-glass p-4 rounded-full flex gap-10 px-12 border-green-500/20 interactive">
+                <div class="text-center">
+                    <div class="text-[8px] opacity-60 uppercase">Active Emergencies</div>
+                    <div id="count-7700" class="text-xl font-black orbitron text-red-500">0</div>
+                </div>
+                <div class="text-center border-x border-green-900/30 px-10">
+                    <div class="text-[8px] opacity-60 uppercase">Sensor Accuracy</div>
+                    <div class="text-xl font-black orbitron text-green-400">99.4%</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[8px] opacity-60 uppercase">Global Density</div>
+                    <div id="density-val" class="text-xl font-black orbitron text-blue-400">MED</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- System Configuration ---
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+            terrainProvider: Cesium.createWorldTerrain(),
+            baseLayerPicker: false,
+            geocoder: false,
+            homeButton: false,
+            infoBox: false,
+            sceneModePicker: true,
+            selectionIndicator: false,
+            timeline: false,
+            animation: false,
+            navigationHelpButton: false,
+            scene3DOnly: true
+        });
+
+        // Use a dark map style
+        viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        }));
+
+        let audioEnabled = true;
+        let cinemaMode = false;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // --- Synthetic Audio Engine ---
+        function playRadarPing() {
+            if (!audioEnabled) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        function playRadioStatic() {
+            if (!audioEnabled) return;
+            const bufferSize = audioCtx.sampleRate * 0.2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+            const whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = buffer;
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
+            whiteNoise.connect(gain);
+            gain.connect(audioCtx.destination);
+            whiteNoise.start();
+        }
+
+        // --- Data Fetching ---
+        async function updateEmergencyData() {
+            try {
+                // 1. Fetch Aircraft (OpenSky)
+                const planeRes = await fetch('https://opensky-network.org/api/states/all');
+                const planeData = await planeRes.json();
+                const emergencies = planeData.states.filter(s => s[14] === "7700");
+                
+                document.getElementById('stat-planes').innerText = planeData.states.length + " UNITS";
+                document.getElementById('count-7700').innerText = emergencies.length;
+                
+                if (emergencies.length > 0) {
+                    playRadarPing();
+                    emergencies.forEach(p => renderPlane(p, true));
+                }
+
+                // 2. Fetch Earthquakes (USGS)
+                const quakeRes = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson');
+                const quakeData = await quakeRes.json();
+                document.getElementById('stat-seismic').innerText = quakeData.features.length + " EVENTS";
+                quakeData.features.slice(0, 10).forEach(renderQuake);
+
+                // Update density
+                const density = planeData.states.length > 5000 ? "CRITICAL" : "NORMAL";
+                document.getElementById('density-val').innerText = density;
+
+            } catch (e) {
+                console.error("Data Intercept Error");
+            }
+        }
+
+        // --- 3D Rendering Helpers ---
+        function renderPlane(p, isEmergency) {
+            const id = p[0];
+            const lat = p[6];
+            const lon = p[5];
+            const alt = p[7] || 10000;
+
+            viewer.entities.add({
+                id: id,
+                position: Cesium.Cartesian3.fromDegrees(lon, lat, alt),
+                point: {
+                    pixelSize: isEmergency ? 12 : 6,
+                    color: isEmergency ? Cesium.Color.RED : Cesium.Color.LIME,
+                    outlineColor: Cesium.Color.WHITE,
+                    outlineWidth: 2
+                },
+                label: {
+                    text: p[1] || 'UNK',
+                    font: '10px JetBrains Mono',
+                    fillColor: Cesium.Color.WHITE,
+                    pixelOffset: new Cesium.Cartesian2(0, -15),
+                    distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1000000)
+                }
+            });
+
+            if (isEmergency) {
+                addLog(`CRITICAL: Flight ${p[1]} squawking 7700 at ${alt}m`, 'red');
+            }
+        }
+
+        function renderQuake(q) {
+            const coords = q.geometry.coordinates;
+            const mag = q.properties.mag;
+            
+            viewer.entities.add({
+                position: Cesium.Cartesian3.fromDegrees(coords[0], coords[1], 0),
+                ellipse: {
+                    semiMinorAxis: mag * 50000,
+                    semiMajorAxis: mag * 50000,
+                    material: Cesium.Color.ORANGE.withAlpha(0.3),
+                    outline: true,
+                    outlineColor: Cesium.Color.ORANGE
+                }
+            });
+        }
+
+        // --- UI Interactions ---
+        function addLog(msg, color = 'green') {
+            const feed = document.getElementById('event-feed');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = `p-2 border-l-2 ${color === 'red' ? 'border-red-600 bg-red-900/10 emergency-glow' : 'border-green-600 bg-green-900/5'} mb-2`;
+            div.innerHTML = `<div>[${time}]</div><div>> ${msg}</div>`;
+            feed.prepend(div);
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('audio-toggle').innerHTML = audioEnabled ? '<i class="fas fa-volume-up"></i> AUDIO: ON' : '<i class="fas fa-volume-mute"></i> AUDIO: OFF';
+            if (audioEnabled) audioCtx.resume();
+        }
+
+        function toggleCinema() {
+            cinemaMode = !cinemaMode;
+            document.getElementById('main-header').classList.toggle('cinema-hidden');
+            document.getElementById('main-sidebar').classList.toggle('cinema-hidden');
+            document.getElementById('bottom-hud').classList.toggle('cinema-hidden');
+        }
+
+        // Handle Clicks on Globe
+        const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+        handler.setInputAction((click) => {
+            const pickedObject = viewer.scene.pick(click.position);
+            if (Cesium.defined(pickedObject)) {
+                playRadioStatic();
+                addLog(`INTERCEPTED SIGNAL: ${pickedObject.id.id || 'Unit Data Verified'}`);
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        // --- App Loop ---
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
         }, 1000);
 
-        // --- OpenSky API (Aircraft in Emergency) ---
-        async function fetchEmergencyPlanes() {
-            const feed = document.getElementById('event-feed');
-            const status = document.getElementById('air-status');
-            
-            try {
-                // OpenSky API - Fetching all planes.
-                // In a real scenario, we'd filter for Squawk 7700.
-                const res = await fetch('https://opensky-network.org/api/states/all');
-                const data = await res.json();
-                
-                // Filter planes with squawk 7700 (General Emergency)
-                const emergencies = data.states.filter(s => s[14] === "7700");
-                
-                if(emergencies.length > 0) {
-                    status.innerHTML = `AIRCRAFT_SQUAWK: <span class="text-red-500 animate-pulse">${emergencies.length} ACTIVE</span>`;
-                    emergencies.forEach(plane => {
-                        addEvent('AIRCRAFT_EMERGENCY', `Flight ${plane[1]} (Callsign) reported Squawk 7700. Location: ${plane[6]}, ${plane[5]}`, 'red');
-                        addMapMarker(plane[6], plane[5], `EMERGENCY: ${plane[1]}`, 'red');
-                    });
-                } else {
-                    status.innerHTML = `AIRCRAFT_SQUAWK: <span class="text-blue-400">0 DETECTED</span>`;
-                }
-            } catch (e) {
-                console.error("OpenSky Signal Lost");
-            }
-        }
-
-        // --- USGS API (Earthquakes) ---
-        async function fetchEarthquakes() {
-            try {
-                const res = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson');
-                const data = await res.json();
-                
-                data.features.slice(0, 5).forEach(q => {
-                    const mag = q.properties.mag;
-                    const place = q.properties.place;
-                    const coords = q.geometry.coordinates;
-                    
-                    addEvent('SEISMIC_EVENT', `Magnitude ${mag} earthquake detected near ${place}.`, mag > 6 ? 'red' : 'orange');
-                    addMapMarker(coords[1], coords[0], `QUAKE: ${mag} - ${place}`, mag > 6 ? 'red' : 'orange');
-                });
-            } catch (e) {
-                console.error("Seismic Grid Offline");
-            }
-        }
-
-        // --- UI Helpers ---
-        function addEvent(type, msg, color) {
-            const feed = document.getElementById('event-feed');
-            const timestamp = new Date().toLocaleTimeString();
-            const colorClass = color === 'red' ? 'text-red-500' : 'text-orange-500';
-            
-            const div = document.createElement('div');
-            div.className = `p-2 border-l-2 ${color === 'red' ? 'border-red-600 bg-red-900/10' : 'border-orange-600 bg-orange-900/10'} mb-2 fade-in`;
-            div.innerHTML = `
-                <div class="flex justify-between font-black mb-1">
-                    <span class="${colorClass}">[${type}]</span>
-                    <span class="opacity-50">${timestamp}</span>
-                </div>
-                <div class="opacity-80">${msg}</div>
-            `;
-            feed.prepend(div);
-        }
-
-        function addMapMarker(lat, lng, title, color) {
-            const markerColor = color === 'red' ? '#ff0000' : '#ffa500';
-            const marker = L.circleMarker([lat, lng], {
-                radius: 10,
-                fillColor: markerColor,
-                color: "#fff",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8,
-                className: color === 'red' ? 'emergency-pulse' : ''
-            }).addTo(map).bindPopup(title);
-            
-            markers.push(marker);
-        }
-
-        // --- Run App ---
-        fetchEmergencyPlanes();
-        fetchEarthquakes();
-        setInterval(fetchEmergencyPlanes, 30000); // 30s refresh
-        setInterval(fetchEarthquakes, 60000); // 60s refresh
+        updateEmergencyData();
+        setInterval(updateEmergencyData, 60000);
+        
+        // Final Viewport fix
+        window.addEventListener('resize', () => { viewer.resize(); });
     </script>
 </body>
 </html>
