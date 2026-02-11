@@ -3,24 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Earth Destroyer - Ultimate</title>
+    <title>Earth Destroyer: Cinema Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; user-select: none; }
         
+        /* מסך פתיחה (חובה בשביל סאונד) */
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 200; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center;
+        }
+        #start-btn {
+            padding: 20px 50px; font-size: 24px; background: #f44336; color: white;
+            border: none; border-radius: 50px; cursor: pointer; margin-top: 20px;
+            box-shadow: 0 0 30px #f44336; transition: transform 0.2s;
+            font-weight: bold; text-transform: uppercase;
+        }
+        #start-btn:hover { transform: scale(1.1); }
+
         /* ממשק משתמש */
         #ui-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+            z-index: 10;
         }
 
         /* בר בריאות */
-        #health-container {
-            width: 100%; padding: 20px; box-sizing: border-box; text-align: center;
-        }
+        #health-container { width: 100%; padding: 20px; box-sizing: border-box; text-align: center; }
         #health-bar-bg {
-            width: 100%; max-width: 600px; height: 30px; background: rgba(50, 50, 50, 0.8);
-            border: 2px solid #fff; border-radius: 15px; margin: 0 auto; overflow: hidden;
-            position: relative;
+            width: 100%; max-width: 600px; height: 30px; background: rgba(20, 20, 20, 0.8);
+            border: 2px solid #555; border-radius: 15px; margin: 0 auto; overflow: hidden; position: relative;
         }
         #health-bar-fill {
             width: 100%; height: 100%; background: linear-gradient(90deg, #4caf50, #ffeb3b, #f44336);
@@ -33,55 +46,51 @@
 
         /* בחירת נשק */
         #weapon-selector {
-            display: flex; justify-content: center; gap: 10px; padding: 20px;
-            pointer-events: auto; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            display: flex; justify-content: center; gap: 15px; padding: 30px;
+            pointer-events: auto; background: linear-gradient(to top, rgba(0,0,0,1), transparent);
             flex-wrap: wrap;
         }
         .weapon-btn {
-            background: rgba(0, 0, 0, 0.6); border: 2px solid #444; color: white;
-            padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 16px;
-            transition: all 0.2s; backdrop-filter: blur(5px);
-            display: flex; flex-direction: column; align-items: center;
+            background: rgba(30, 30, 30, 0.8); border: 1px solid #666; color: #ddd;
+            padding: 15px; border-radius: 12px; cursor: pointer; font-size: 14px;
+            transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
+            width: 80px;
         }
-        .weapon-btn:active { transform: scale(0.95); }
-        .weapon-btn.active { border-color: #00e5ff; background: rgba(0, 229, 255, 0.2); box-shadow: 0 0 15px #00e5ff; }
-        .weapon-icon { font-size: 24px; margin-bottom: 5px; }
+        .weapon-btn.active { 
+            border-color: #f44336; background: rgba(244, 67, 54, 0.2); 
+            box-shadow: 0 0 15px rgba(244, 67, 54, 0.5); color: white; transform: translateY(-5px);
+        }
+        .weapon-icon { font-size: 28px; margin-bottom: 5px; }
 
         /* מסך סיום */
         #game-over {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); display: none;
+            background: rgba(0, 0, 0, 0.95); display: none;
             flex-direction: column; justify-content: center; align-items: center;
             pointer-events: auto; z-index: 100;
         }
-        #game-over h1 { color: #f44336; font-size: 50px; text-transform: uppercase; margin: 0; letter-spacing: 5px; animation: pulse 2s infinite; }
-        #restart-btn {
-            margin-top: 30px; padding: 15px 40px; font-size: 20px;
-            background: #fff; border: none; border-radius: 30px; cursor: pointer;
-            font-weight: bold; text-transform: uppercase;
-            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        #game-over h1 { 
+            color: #f44336; font-size: 60px; text-transform: uppercase; margin: 0; 
+            letter-spacing: 5px; text-shadow: 0 0 20px red;
         }
         
-        /* אפקטים */
         #flash {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s;
-        }
-
-        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
-        
-        /* התאמה לנייד */
-        @media (max-width: 600px) {
-            .weapon-btn { padding: 8px 12px; font-size: 12px; }
-            .weapon-icon { font-size: 18px; }
-            #health-bar-bg { max-width: 90%; }
+            background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 50;
         }
     </style>
-    <!-- טעינת Three.js מ-CDN -->
+    <!-- ספריות גרפיקה -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 </head>
 <body>
+
+    <!-- מסך פתיחה (חובה לאודיו) -->
+    <div id="start-screen">
+        <h1 style="font-size: 40px; margin-bottom: 10px;">EARTH DESTROYER</h1>
+        <p>השמד את הכדור עם ארסנל נשקים</p>
+        <button id="start-btn" onclick="startGame()">התחל משימה</button>
+    </div>
 
     <div id="flash"></div>
 
@@ -89,486 +98,401 @@
         <div id="health-container">
             <div id="health-bar-bg">
                 <div id="health-bar-fill"></div>
-                <span id="health-text">שלמות כדור הארץ: 100%</span>
+                <span id="health-text">מצב הכוכב: 100%</span>
             </div>
         </div>
 
         <div id="weapon-selector">
-            <button class="weapon-btn active" onclick="selectWeapon('asteroid')">
-                <span class="weapon-icon">☄️</span> אסטרואיד
-            </button>
-            <button class="weapon-btn" onclick="selectWeapon('laser')">
+            <button class="weapon-btn active" onclick="selectWeapon('laser')">
                 <span class="weapon-icon">⚡</span> לייזר
+            </button>
+            <button class="weapon-btn" onclick="selectWeapon('asteroid')">
+                <span class="weapon-icon">☄️</span> אסטרואיד
             </button>
             <button class="weapon-btn" onclick="selectWeapon('nuke')">
                 <span class="weapon-icon">☢️</span> גרעיני
             </button>
             <button class="weapon-btn" onclick="selectWeapon('monster')">
-                <span class="weapon-icon">🐙</span> מפלצת חלל
+                <span class="weapon-icon">👾</span> חייזר
             </button>
         </div>
     </div>
 
     <div id="game-over">
-        <h1>כדור הארץ הושמד</h1>
-        <button id="restart-btn" onclick="resetGame()">בנה עולם חדש</button>
+        <h1>המשימה הושלמה</h1>
+        <p style="color: #aaa; margin-bottom: 20px;">כדור הארץ הושמד בהצלחה</p>
+        <button id="start-btn" onclick="resetGame()">אתחול מערכת</button>
     </div>
 
     <script>
-        // --- מנוע סאונד (Web Audio API) ---
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const audioCtx = new AudioContext();
+        // --- מערכת סאונד מתקדמת (קבצים) ---
+        const sounds = {
+            bgMusic: new Audio('https://labs.phaser.io/assets/audio/tech/sci-fi_platformer04.mp3'),
+            laser: 'https://labs.phaser.io/assets/audio/SoundEffects/blaster.mp3',
+            explosion_small: 'https://labs.phaser.io/assets/audio/SoundEffects/explosion.mp3',
+            explosion_big: 'https://labs.phaser.io/assets/audio/SoundEffects/explode1.wav', // סאונד עמוק
+            monster: 'https://labs.phaser.io/assets/audio/monsters/golem_groan.mp3',
+            impact: 'https://labs.phaser.io/assets/audio/SoundEffects/squit.mp3'
+        };
 
-        function playSound(type) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+        sounds.bgMusic.loop = true;
+        sounds.bgMusic.volume = 0.3;
 
-            const now = audioCtx.currentTime;
+        function playSfx(type) {
+            let src = '';
+            let vol = 1.0;
 
-            if (type === 'laser') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(now);
-                osc.stop(now + 0.3);
-            } else if (type === 'explosion') {
-                // רעש לבן לפיצוץ
-                const bufferSize = audioCtx.sampleRate * 1.5;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                
-                const noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-                
-                // פילטר נמוך לבום
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.value = 1000;
-                
-                noise.connect(filter);
-                filter.connect(gain);
-                
-                gain.gain.setValueAtTime(0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 1);
-                
-                noise.start(now);
-                noise.stop(now + 1);
-            } else if (type === 'monster') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(50, now);
-                osc.frequency.linearRampToValueAtTime(150, now + 0.5);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
-                osc.start(now);
-                osc.stop(now + 0.8);
+            if (type === 'laser') src = sounds.laser;
+            else if (type === 'asteroid') { src = sounds.explosion_small; vol = 0.6; }
+            else if (type === 'nuke') src = sounds.explosion_big;
+            else if (type === 'monster') src = sounds.monster;
+            else if (type === 'impact') src = sounds.impact;
+
+            if (src) {
+                const audio = new Audio(src);
+                audio.volume = vol;
+                // שינוי מהירות אקראי קטן לגיוון
+                audio.playbackRate = 0.9 + Math.random() * 0.2;
+                audio.play().catch(e => console.log('Audio blocked', e));
             }
         }
 
-        // --- אתחול Three.js ---
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            sounds.bgMusic.play().catch(e => console.log("Background music blocked"));
+        }
+
+        // --- גרפיקה (Three.js) ---
         const scene = new THREE.Scene();
+        // ערפל חלל לרקע
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 3.5;
+        camera.position.z = 4;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(window.devicePixelRatio); // חדות בטלפונים
+        renderer.toneMapping = THREE.ReinhardToneMapping;
         document.body.appendChild(renderer.domElement);
 
-        // --- תאורה ---
-        const ambientLight = new THREE.AmbientLight(0x333333);
+        // תאורה דרמטית
+        const ambientLight = new THREE.AmbientLight(0x222222);
         scene.add(ambientLight);
         const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
         sunLight.position.set(5, 3, 5);
         scene.add(sunLight);
+        const rimLight = new THREE.SpotLight(0x0044ff, 2); // אור כחול מאחור
+        rimLight.position.set(-5, 0, -5);
+        rimLight.lookAt(0,0,0);
+        scene.add(rimLight);
 
-        // --- יצירת כדור הארץ ---
-        const textureLoader = new THREE.TextureLoader();
-        // שימוש בטקסטורות מ-GitHub כדי להבטיח זמינות
-        const earthMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
-        const earthBump = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
-        
-        let earthGeometry = new THREE.SphereGeometry(1, 128, 128); // רזולוציה גבוהה לשינוי קרקע
-        
-        // הוספת צבעי קודקודים לשינוי צבע הפיצוץ
-        const count = earthGeometry.attributes.position.count;
-        earthGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
-        
-        const colors = earthGeometry.attributes.color;
-        for (let i = 0; i < count; i++) {
-            colors.setXYZ(i, 1, 1, 1); // לבן כברירת מחדל (משתמש בצבעי הטקסטורה)
-        }
+        // --- כדור הארץ ---
+        const texLoader = new THREE.TextureLoader();
+        const earthGroup = new THREE.Group();
+        scene.add(earthGroup);
 
-        const earthMaterial = new THREE.MeshStandardMaterial({
-            map: earthMap,
-            normalMap: earthBump,
+        const geometry = new THREE.IcosahedronGeometry(1, 12); // גיאומטריה מורכבת לפירוק
+        const material = new THREE.MeshStandardMaterial({
+            map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg'),
+            normalMap: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg'),
             roughness: 0.8,
             metalness: 0.1,
-            vertexColors: true 
+            vertexColors: true
         });
 
-        let earth = new THREE.Mesh(earthGeometry, earthMaterial);
-        scene.add(earth);
+        // אתחול צבעים לגיאומטריה (לבן)
+        const count = geometry.attributes.position.count;
+        geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+        const colors = geometry.attributes.color;
+        for (let i = 0; i < count; i++) colors.setXYZ(i, 1, 1, 1);
 
-        // --- אטמוספירה (Glow) ---
-        const atmosphereGeo = new THREE.SphereGeometry(1.1, 64, 64);
-        const atmosphereMat = new THREE.ShaderMaterial({
+        const earth = new THREE.Mesh(geometry, material);
+        earthGroup.add(earth);
+
+        // עננים נפרדים
+        const cloudGeo = new THREE.SphereGeometry(1.02, 64, 64);
+        const cloudMat = new THREE.MeshStandardMaterial({
+            map: texLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png'),
             transparent: true,
-            side: THREE.BackSide,
-            uniforms: {},
-            vertexShader: `
-                varying vec3 vNormal;
-                void main() {
-                    vNormal = normalize(normalMatrix * normal);
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                varying vec3 vNormal;
-                void main() {
-                    float intensity = pow(0.6 - dot(vNormal, vec3(0, 0, 1.0)), 4.0);
-                    gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
-                }
-            `
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide
         });
-        const atmosphere = new THREE.Mesh(atmosphereGeo, atmosphereMat);
+        const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+        earthGroup.add(clouds);
+
+        // אטמוספירה
+        const atmoGeo = new THREE.SphereGeometry(1.2, 64, 64);
+        const atmoMat = new THREE.ShaderMaterial({
+            transparent: true, side: THREE.BackSide,
+            uniforms: {},
+            vertexShader: `varying vec3 vNormal; void main(){vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+            fragmentShader: `varying vec3 vNormal; void main(){float i=pow(0.5-dot(vNormal,vec3(0,0,1.0)),4.0);gl_FragColor=vec4(0.2,0.5,1.0,1.0)*i;}`
+        });
+        const atmosphere = new THREE.Mesh(atmoGeo, atmoMat);
         scene.add(atmosphere);
 
-        // --- כוכבים ברקע ---
+        // חלקיקי כוכבים
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 2000;
-        const starPos = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount*3; i++) {
-            starPos[i] = (Math.random() - 0.5) * 100;
+        const starPos = [];
+        for(let i=0; i<3000; i++) {
+            starPos.push((Math.random()-0.5)*100, (Math.random()-0.5)*100, (Math.random()-0.5)*100);
         }
-        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.05, transparent: true});
-        const stars = new THREE.Points(starGeo, starMat);
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.05}));
         scene.add(stars);
 
         // --- לוגיקת משחק ---
-        let currentWeapon = 'asteroid';
-        let earthHealth = 100;
+        let currentWeapon = 'laser';
+        let health = 100;
         let isGameOver = false;
-        let shakeIntensity = 0;
+        let shake = 0;
 
-        // אינטראקציה
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
-        function selectWeapon(weapon) {
-            currentWeapon = weapon;
-            document.querySelectorAll('.weapon-btn').forEach(btn => btn.classList.remove('active'));
+        function selectWeapon(w) {
+            currentWeapon = w;
+            document.querySelectorAll('.weapon-btn').forEach(b => b.classList.remove('active'));
             event.currentTarget.classList.add('active');
         }
 
-        window.addEventListener('pointerdown', onTouch);
+        // Raycaster לזיהוי פגיעה
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
 
-        function onTouch(event) {
+        window.addEventListener('pointerdown', (e) => {
             if (isGameOver) return;
-
-            // חישוב מיקום עכבר/מגע
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObject(earth);
+            if (intersects.length > 0) handleHit(intersects[0]);
+        });
 
-            if (intersects.length > 0) {
-                fireWeapon(intersects[0]);
-            }
-        }
-
-        function fireWeapon(impactData) {
-            const point = impactData.point;
-            const normal = impactData.face.normal;
-
-            if (currentWeapon === 'asteroid') {
-                createAsteroid(point);
-            } else if (currentWeapon === 'laser') {
-                createLaser(point);
-                damageEarth(point, 5, 0.15, 0x000000); // נזק קטן וממוקד
-            } else if (currentWeapon === 'nuke') {
-                createNuke(point);
-                // הנזק יגיע אחרי האנימציה
-                setTimeout(() => {
-                    damageEarth(point, 25, 0.4, 0x333333);
-                    playSound('explosion');
-                    flashScreen();
-                    shakeIntensity = 0.5;
-                }, 500);
-            } else if (currentWeapon === 'monster') {
-                createMonsterAttack(point);
-                setTimeout(() => {
-                    damageEarth(point, 15, 0.3, 0x330000); // נזק אדום כהה
-                    playSound('monster');
-                    shakeIntensity = 0.3;
-                }, 200);
-            }
-        }
-
-        // --- אפקטים של נשקים ---
-
-        function createAsteroid(targetPoint) {
-            const geometry = new THREE.DodecahedronGeometry(0.1, 0);
-            const material = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 });
-            const asteroid = new THREE.Mesh(geometry, material);
+        function handleHit(hit) {
+            const p = hit.point;
             
-            // התחלה מחוץ למסך
-            const startPos = targetPoint.clone().normalize().multiplyScalar(4);
-            asteroid.position.copy(startPos);
-            scene.add(asteroid);
+            if (currentWeapon === 'laser') {
+                shootLaser(p);
+                damageEarth(p, 5, 0.15, [0.1, 0.1, 0.1]); // חריכה שחורה
+            } 
+            else if (currentWeapon === 'asteroid') {
+                launchAsteroid(p); // הנזק קורה בפגיעה
+            } 
+            else if (currentWeapon === 'nuke') {
+                launchNuke(p);
+            } 
+            else if (currentWeapon === 'monster') {
+                spawnMonster(p);
+            }
+        }
 
-            // שובל אש
-            const trailGeo = new THREE.BufferGeometry();
-            const trailMat = new THREE.PointsMaterial({ color: 0xffaa00, size: 0.1, transparent: true, opacity: 0.8 });
-            const trail = new THREE.Points(trailGeo, trailMat);
-            scene.add(trail);
+        // --- אפקטים ---
 
-            // אנימציה
-            const duration = 0.5;
-            gsap.to(asteroid.position, {
-                x: targetPoint.x, y: targetPoint.y, z: targetPoint.z,
-                duration: duration,
-                ease: "power1.in",
-                onUpdate: () => {
-                    asteroid.rotation.x += 0.1;
-                    asteroid.rotation.y += 0.1;
-                },
+        function shootLaser(target) {
+            playSfx('laser');
+            // קרן לייזר
+            const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(target.x*2, target.y*2, 5), target]);
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3 }));
+            scene.add(line);
+            
+            // פיצוץ קטן
+            createParticles(target, 0x00ffff, 10);
+            
+            gsap.to(line.material, { opacity: 0, duration: 0.2, onComplete: () => scene.remove(line) });
+        }
+
+        function launchAsteroid(target) {
+            const rock = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(0.15, 0),
+                new THREE.MeshStandardMaterial({ color: 0x885522, roughness: 1 })
+            );
+            const start = target.clone().normalize().multiplyScalar(5);
+            rock.position.copy(start);
+            scene.add(rock);
+
+            gsap.to(rock.position, {
+                x: target.x, y: target.y, z: target.z, duration: 0.6, ease: "power1.in",
+                onUpdate: () => rock.rotation.x += 0.2,
                 onComplete: () => {
-                    scene.remove(asteroid);
-                    scene.remove(trail);
-                    createExplosion(targetPoint, 0xff5500);
-                    damageEarth(targetPoint, 10, 0.2, 0x222222);
-                    playSound('explosion');
-                    shakeIntensity = 0.2;
+                    scene.remove(rock);
+                    playSfx('asteroid');
+                    createParticles(target, 0xffaa00, 30);
+                    damageEarth(target, 12, 0.25, [0.3, 0.1, 0]); // מכתש חום
+                    shake += 0.2;
                 }
             });
         }
 
-        function createLaser(targetPoint) {
-            const startPoint = new THREE.Vector3(targetPoint.x * 3, targetPoint.y * 3, 5); // מקור הלייזר
-            const points = [startPoint, targetPoint];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({ color: 0x00ffcc, linewidth: 5 });
-            const laser = new THREE.Line(geometry, material);
-            scene.add(laser);
-
-            playSound('laser');
-            createExplosion(targetPoint, 0x00ffcc, 0.5);
-
-            setTimeout(() => scene.remove(laser), 100);
-        }
-
-        function createNuke(targetPoint) {
-            // טיל קטן
-            const missile = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2), new THREE.MeshBasicMaterial({color: 0xffffff}));
-            missile.position.copy(targetPoint.clone().multiplyScalar(3));
-            missile.lookAt(targetPoint);
+        function launchNuke(target) {
+            const missile = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, 0.3),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            missile.position.copy(target.clone().multiplyScalar(4));
+            missile.lookAt(target);
             scene.add(missile);
 
             gsap.to(missile.position, {
-                x: targetPoint.x, y: targetPoint.y, z: targetPoint.z,
-                duration: 0.5,
-                ease: "linear",
+                x: target.x, y: target.y, z: target.z, duration: 0.8,
                 onComplete: () => {
                     scene.remove(missile);
-                    // פטריית עשן (פשוטה)
-                    createExplosion(targetPoint, 0xffaa00, 3.0);
+                    playSfx('nuke');
+                    createParticles(target, 0xff5500, 100); // פיצוץ ענק
+                    
+                    // הבזק לבן
+                    const flash = document.getElementById('flash');
+                    flash.style.opacity = 1;
+                    gsap.to(flash.style, { opacity: 0, duration: 1 });
+
+                    damageEarth(target, 35, 0.5, [0, 0, 0]); // שרוף לגמרי
+                    shake += 0.8;
                 }
             });
         }
 
-        function createMonsterAttack(targetPoint) {
-            // זרוע סגולה יוצאת מהכדור
-            const tentacleGeo = new THREE.ConeGeometry(0.1, 1, 8);
-            const tentacleMat = new THREE.MeshStandardMaterial({ color: 0x8800ff });
-            const tentacle = new THREE.Mesh(tentacleGeo, tentacleMat);
-            tentacle.position.copy(targetPoint);
-            tentacle.lookAt(new THREE.Vector3(0,0,0)); // מצביע למרכז
-            tentacle.position.add(targetPoint.clone().normalize().multiplyScalar(0.5)); // מזיז קצת החוצה
-            scene.add(tentacle);
-
-            gsap.to(tentacle.position, {
-                x: targetPoint.x, y: targetPoint.y, z: targetPoint.z,
-                duration: 0.2,
-                yoyo: true,
-                repeat: 1,
-                onComplete: () => scene.remove(tentacle)
-            });
+        function spawnMonster(target) {
+            playSfx('monster');
+            const tentacles = [];
+            for(let i=0; i<5; i++) {
+                const t = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.05, 0.8, 8),
+                    new THREE.MeshStandardMaterial({ color: 0x8800ff })
+                );
+                t.position.copy(target);
+                t.lookAt(target.clone().multiplyScalar(2));
+                t.rotation.z += Math.random();
+                scene.add(t);
+                tentacles.push(t);
+                
+                gsap.to(t.scale, { y: 0, duration: 0.5, delay: 0.2, onComplete: () => scene.remove(t) });
+            }
             
-            createExplosion(targetPoint, 0xaa00ff, 1.5);
+            setTimeout(() => {
+                damageEarth(target, 20, 0.35, [0.2, 0, 0.4]); // סגול
+                createParticles(target, 0xaa00ff, 40);
+                shake += 0.3;
+            }, 300);
         }
 
-        function createExplosion(position, color, scale = 1.0) {
-            const particleCount = 20 * scale;
-            const geo = new THREE.BufferGeometry();
-            const positions = [];
+        function createParticles(pos, color, count) {
+            const pGeo = new THREE.BufferGeometry();
+            const pPos = [];
+            const pVel = [];
             
-            for(let i=0; i<particleCount; i++) {
-                positions.push(position.x, position.y, position.z);
+            for(let i=0; i<count; i++) {
+                pPos.push(pos.x, pos.y, pos.z);
+                const v = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(0.05);
+                pVel.push(v.x, v.y, v.z);
             }
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
-            const mat = new THREE.PointsMaterial({ color: color, size: 0.1 * scale, transparent: true });
-            const particles = new THREE.Points(geo, mat);
-            scene.add(particles);
+            pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+            const mat = new THREE.PointsMaterial({ color: color, size: 0.15, transparent: true });
+            const points = new THREE.Points(pGeo, mat);
+            scene.add(points);
 
-            const directions = [];
-            for(let i=0; i<particleCount; i++) {
-                directions.push(new THREE.Vector3((Math.random()-0.5), (Math.random()-0.5), (Math.random()-0.5)).normalize().multiplyScalar(0.05));
-            }
-
-            // אנימציית חלקיקים ידנית ב-loop
-            const startTime = Date.now();
-            function animateParticles() {
-                const elapsed = (Date.now() - startTime) / 1000;
-                if (elapsed > 1) {
-                    scene.remove(particles);
-                    return;
+            // אנימציה פשוטה לחלקיקים
+            let frame = 0;
+            function tick() {
+                frame++;
+                const arr = pGeo.attributes.position.array;
+                for(let i=0; i<count; i++) {
+                    arr[i*3] += pVel[i*3];
+                    arr[i*3+1] += pVel[i*3+1];
+                    arr[i*3+2] += pVel[i*3+2];
                 }
-                const positions = particles.geometry.attributes.position.array;
-                for(let i=0; i<particleCount; i++) {
-                    positions[i*3] += directions[i].x;
-                    positions[i*3+1] += directions[i].y;
-                    positions[i*3+2] += directions[i].z;
-                }
-                particles.geometry.attributes.position.needsUpdate = true;
-                particles.material.opacity = 1 - elapsed;
-                requestAnimationFrame(animateParticles);
+                pGeo.attributes.position.needsUpdate = true;
+                mat.opacity -= 0.02;
+                if (mat.opacity > 0) requestAnimationFrame(tick);
+                else scene.remove(points);
             }
-            animateParticles();
+            tick();
         }
 
-        function flashScreen() {
-            const flash = document.getElementById('flash');
-            flash.style.opacity = 0.8;
-            setTimeout(() => { flash.style.opacity = 0; }, 100);
-        }
+        // --- מנוע הרס ---
+        function damageEarth(point, dmg, radius, colorRGB) {
+            health -= dmg;
+            if (health < 0) health = 0;
+            
+            // עדכון UI
+            document.getElementById('health-bar-fill').style.width = health + '%';
+            document.getElementById('health-text').innerText = `מצב הכוכב: ${Math.round(health)}%`;
 
-        // --- שינוי הגיאומטריה (הרס) ---
-        function damageEarth(point, damageAmount, craterRadius, charColorHex) {
-            if (isGameOver) return;
-
-            // עדכון חיים
-            earthHealth = Math.max(0, earthHealth - damageAmount);
-            updateHealthUI();
-
-            if (earthHealth <= 0) {
-                triggerGameOver();
+            if (health <= 0 && !isGameOver) {
+                gameOver();
+                return;
             }
 
-            // שינוי קודקודים (מכתש)
-            const positions = earthGeometry.attributes.position;
-            const colors = earthGeometry.attributes.color;
-            const vector = new THREE.Vector3();
-            const colorObj = new THREE.Color(charColorHex);
+            // עיוות גיאומטריה וצבע
+            const positions = geometry.attributes.position;
+            const colors = geometry.attributes.color;
+            const v = new THREE.Vector3();
 
             for (let i = 0; i < positions.count; i++) {
-                vector.set(positions.getX(i), positions.getY(i), positions.getZ(i));
-                // המרת מיקום מקומי לעולמי כדי להשוות לנקודת הפגיעה (שהיא עולמית)
-                // במקרה הזה, מכיוון שהכדור ב-0,0,0 וללא רוטציה כרגע (חוץ מהאנימציה), נצטרך להתחשב ברוטציה
-                const worldPos = vector.clone().applyMatrix4(earth.matrixWorld);
+                v.set(positions.getX(i), positions.getY(i), positions.getZ(i));
+                // בדיקת מרחק (חייבים להכפיל במטריצה אם היו טרנספורמציות, כאן הגלובוס ב-0,0,0)
+                // עקב רוטציה של הגרופ, החישוב המדויק מורכב יותר, לכן נשתמש בקירוב מקומי
+                // הפתרון הפשוט: המרת נקודת הפגיעה למערכת הקואורדינטות המקומית של הכדור
+                const localPoint = earth.worldToLocal(point.clone());
                 
-                const dist = worldPos.distanceTo(point);
+                const dist = v.distanceTo(localPoint);
 
-                if (dist < craterRadius) {
-                    // הנמכת הגובה (יצירת בור)
-                    const pushFactor = (craterRadius - dist) * 0.5; // עומק המכתש
-                    vector.multiplyScalar(1 - pushFactor); 
-                    
-                    positions.setXYZ(i, vector.x, vector.y, vector.z);
+                if (dist < radius) {
+                    // הנמכת גובה (מכתש)
+                    const factor = (radius - dist) / radius;
+                    v.lerp(new THREE.Vector3(0,0,0), factor * 0.3); 
+                    positions.setXYZ(i, v.x, v.y, v.z);
 
-                    // צביעת האזור בשחור/אדום
-                    // ערבוב צבע קיים עם צבע הפגיעה
-                    colors.setXYZ(i, colorObj.r, colorObj.g, colorObj.b);
+                    // צביעה
+                    colors.setXYZ(i, colorRGB[0], colorRGB[1], colorRGB[2]);
                 }
             }
-
-            earthGeometry.attributes.position.needsUpdate = true;
-            earthGeometry.attributes.color.needsUpdate = true;
-            earthGeometry.computeVertexNormals(); // עדכון תאורה
+            positions.needsUpdate = true;
+            colors.needsUpdate = true;
+            geometry.computeVertexNormals();
         }
 
-        function updateHealthUI() {
-            const fill = document.getElementById('health-bar-fill');
-            const text = document.getElementById('health-text');
-            fill.style.width = earthHealth + '%';
-            text.innerText = `שלמות כדור הארץ: ${Math.round(earthHealth)}%`;
-            
-            // שינוי צבע הבר
-            if(earthHealth < 30) fill.style.background = '#f44336';
-            else if(earthHealth < 60) fill.style.background = '#ffeb3b';
-        }
-
-        function triggerGameOver() {
+        function gameOver() {
             isGameOver = true;
-            playSound('explosion');
+            playSfx('nuke');
             
-            // פיצוץ סופי ענק
-            createExplosion(new THREE.Vector3(0,0,0), 0xffaa00, 10);
-            scene.remove(earth); // העלמת הכדור
+            // שבירת הכדור (אפקט ויזואלי מהיר - הסתרה והחלפה בפיצוץ)
+            scene.remove(earthGroup);
             scene.remove(atmosphere);
             
-            document.getElementById('game-over').style.display = 'flex';
-            document.getElementById('ui-container').style.display = 'none';
+            createParticles(new THREE.Vector3(0,0,0), 0xff5500, 500); // פיצוץ סופי
+            
+            setTimeout(() => {
+                document.getElementById('ui-container').style.display = 'none';
+                document.getElementById('game-over').style.display = 'flex';
+            }, 1000);
         }
 
-        // --- איפוס משחק ---
         window.resetGame = function() {
-            earthHealth = 100;
-            isGameOver = false;
-            updateHealthUI();
-            
-            // שחזור כדור הארץ
-            scene.add(earth);
-            scene.add(atmosphere);
-            
-            // איפוס גיאומטריה - פשוט יוצרים חדש כי זה הכי נקי
-            const newGeo = new THREE.SphereGeometry(1, 128, 128);
-            newGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(newGeo.attributes.position.count * 3), 3));
-            const cols = newGeo.attributes.color;
-            for(let i=0; i<cols.count; i++) cols.setXYZ(i, 1, 1, 1);
-            
-            earth.geometry.dispose();
-            earth.geometry = newGeo;
+            location.reload(); // הכי נקי ופשוט לאתחול מלא של WebGL
+        }
 
-            document.getElementById('game-over').style.display = 'none';
-            document.getElementById('ui-container').style.display = 'flex';
-        };
-
-        // --- לולאת אנימציה ראשית ---
+        // --- לולאת משחק ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // סיבוב הכדור (אם הוא קיים)
             if (!isGameOver) {
-                earth.rotation.y += 0.001;
-                atmosphere.rotation.y += 0.001;
+                earthGroup.rotation.y += 0.001;
+                clouds.rotation.y += 0.0015;
             }
 
-            // רעידות
-            if (shakeIntensity > 0) {
-                const rx = (Math.random() - 0.5) * shakeIntensity;
-                const ry = (Math.random() - 0.5) * shakeIntensity;
-                const rz = (Math.random() - 0.5) * shakeIntensity;
-                camera.position.set(0 + rx, 0 + ry, 3.5 + rz);
-                shakeIntensity -= 0.02; // דעיכה
-                if (shakeIntensity < 0) {
-                    shakeIntensity = 0;
-                    camera.position.set(0, 0, 3.5);
-                }
+            // רעידות מצלמה
+            if (shake > 0) {
+                camera.position.x = (Math.random() - 0.5) * shake;
+                camera.position.y = (Math.random() - 0.5) * shake;
+                camera.position.z = 4 + (Math.random() - 0.5) * shake;
+                shake *= 0.9;
+                if (shake < 0.01) { shake = 0; camera.position.set(0,0,4); }
             }
 
             renderer.render(scene, camera);
         }
 
-        // התאמה לגודל מסך
+        // התאמה למסך
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
