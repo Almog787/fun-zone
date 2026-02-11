@@ -3,191 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מכ"ם אוטובוסים בזמן אמת - ישראל</title>
-    
-    <!-- Tailwind CSS לעיצוב מהיר -->
+    <title>לוח טיסות נתב"ג - זמן אמת</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Leaflet CSS & JS - מפות חינמיות לחלוטין -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;700&display=swap');
-        body { font-family: 'Assistant', sans-serif; margin: 0; padding: 0; }
-        #map { height: calc(100vh - 70px); width: 100%; }
-        
-        /* עיצוב האייקון של האוטובוס על המפה */
-        .bus-div-icon {
-            background: #2563eb;
-            border: 2px solid white;
-            border-radius: 50%;
-            color: white;
-            font-weight: bold;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-            width: 26px !important;
-            height: 26px !important;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;700;800&display=swap');
+        body { font-family: 'Assistant', sans-serif; background-color: #0f172a; color: white; }
+        .flight-row:nth-child(even) { background-color: rgba(255, 255, 255, 0.05); }
+        .status-landed { color: #4ade80; } /* ירוק */
+        .status-delayed { color: #f87171; } /* אדום */
+        .status-final { color: #60a5fa; } /* כחול */
     </style>
 </head>
-<body class="bg-gray-50 overflow-hidden">
+<body class="p-4 md:p-8">
 
-    <!-- Header -->
-    <header class="bg-blue-700 text-white h-[70px] px-6 flex justify-between items-center shadow-md relative z-[1000]">
-        <div class="flex items-center gap-3">
-            <div class="text-2xl">🚌</div>
-            <h1 class="text-xl font-bold tracking-tight">אוטובוסים בזמן אמת <span class="text-blue-200 font-light">ישראל</span></h1>
-        </div>
-        <div class="flex items-center gap-4">
-            <div id="status" class="text-[10px] bg-blue-800 px-3 py-1 rounded-full border border-blue-600">טוען נתונים...</div>
-            <button onclick="fetchData()" class="bg-white text-blue-700 px-4 py-1 rounded-lg text-sm font-bold hover:bg-blue-50 transition">רענן</button>
-        </div>
-    </header>
-
-    <main class="flex">
-        <!-- Sidebar -->
-        <aside class="w-80 bg-white border-l shadow-xl hidden md:flex flex-col z-[500]" style="height: calc(100vh - 70px);">
-            <div class="p-4 bg-gray-50 border-b">
-                <h2 class="font-bold text-gray-700 text-sm italic">דיווחים אחרונים (SIRI)</h2>
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-4xl font-black tracking-tighter text-blue-400 italic">TLV LIVE <span class="text-white">BOARD</span></h1>
+                <p class="text-slate-400 text-sm">נתונים רשמיים מרשות שדות התעופה (data.gov.il)</p>
             </div>
-            <div id="bus-list" class="flex-1 overflow-y-auto divide-y divide-gray-100">
-                <!-- כאן תופיע רשימת האוטובוסים -->
-                <p class="p-4 text-gray-400 text-sm italic">מחפש שידורי GPS...</p>
+            
+            <div class="flex bg-slate-800 p-1 rounded-xl shadow-inner">
+                <button onclick="changeMode('D')" id="btn-dep" class="px-6 py-2 rounded-lg font-bold transition bg-blue-600">המראות</button>
+                <button onclick="changeMode('A')" id="btn-arr" class="px-6 py-2 rounded-lg font-bold transition">נחיתות</button>
             </div>
-        </aside>
+        </header>
 
-        <!-- Map Container -->
-        <div id="map" class="flex-1"></div>
-    </main>
+        <!-- Search & Filter -->
+        <div class="mb-6 relative">
+            <input type="text" id="search" placeholder="חפש עיר, חברה או מספר טיסה..." 
+                class="w-full bg-slate-800 border border-slate-700 p-4 rounded-2xl outline-none focus:border-blue-500 transition shadow-lg text-lg">
+            <div id="loading" class="absolute left-4 top-4 hidden">
+                <div class="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800 text-slate-400 uppercase text-xs font-bold tracking-widest">
+                            <th class="p-4">חברה</th>
+                            <th class="p-4">טיסה</th>
+                            <th class="p-4">יעד/מקור</th>
+                            <th class="p-4 text-center">טרמינל</th>
+                            <th class="p-4">זמן מתוכנן</th>
+                            <th class="p-4">סטטוס</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flight-table" class="divide-y divide-slate-800">
+                        <!-- נתונים יוזרקו כאן -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="no-results" class="hidden text-center py-20 text-slate-500 italic">לא נמצאו טיסות תואמות</div>
+    </div>
 
     <script>
-        // --- הגדרות מפה ---
-        // מיקוד ראשוני על ישראל
-        const map = L.map('map', { zoomControl: false }).setView([32.0853, 34.7818], 12);
+        // מזהה המשאיר של לוח הטיסות ב-data.gov.il
+        const RESOURCE_ID = "e83f7610-d348-4030-af11-b91817454942";
+        const API_URL = "https://data.gov.il/api/3/action/datastore_search";
         
-        // טעינת שכבת המפה (חינמי מ-OpenStreetMap)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        let currentMode = 'D'; // D = Departures, A = Arrivals
+        let allFlights = [];
 
-        L.control.zoom({ position: 'bottomleft' }).addTo(map);
-
-        let markers = {}; // שומר את המרקרים על המפה למניעת כפילויות
-
-        // --- שאילתת GraphQL לשרתי סטרייד ---
-        const STRIDE_ENDPOINT = "https://open-bus-stride-api.hasadna.org.il/graphql";
-        
-        const query = `
-        query {
-          siri_vehicle_locations(order_by: {recorded_at_time: desc}, limit: 150) {
-            id
-            latitude
-            longitude
-            recorded_at_time
-            velocity
-            siri_ride {
-              gtfs_ride {
-                gtfs_route {
-                  route_short_name
-                  route_long_name
-                }
-              }
-            }
-          }
-        }`;
-
-        // --- פונקציית משיכת נתונים ---
-        async function fetchData() {
-            const statusEl = document.getElementById('status');
-            statusEl.innerText = "מעדכן...";
+        async function fetchFlights() {
+            const loading = document.getElementById('loading');
+            loading.classList.remove('hidden');
 
             try {
-                // פנייה ישירה ל-API ללא פרוקסי
-                const response = await fetch(STRIDE_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query })
-                });
-
-                const result = await response.json();
-                const buses = result.data.siri_vehicle_locations;
-
-                updateUI(buses);
-                statusEl.innerText = `עודכן: ${new Date().toLocaleTimeString('he-IL')}`;
+                // אנחנו מושכים את 200 הטיסות האחרונות (המראות ונחיתות יחד)
+                const response = await fetch(`${API_URL}?resource_id=${RESOURCE_ID}&limit=250`);
+                const data = await response.json();
+                allFlights = data.result.records;
+                
+                renderTable();
             } catch (error) {
-                console.error("Error:", error);
-                statusEl.innerText = "שגיאת תקשורת";
+                console.error("API Error:", error);
+                alert("שגיאה בחיבור לפורטל הנתונים הממשלתי");
+            } finally {
+                loading.classList.add('hidden');
             }
         }
 
-        // --- עדכון המפה והרשימה ---
-        function updateUI(buses) {
-            const listContainer = document.getElementById('bus-list');
-            listContainer.innerHTML = ""; // ניקוי רשימה
+        function renderTable() {
+            const tableBody = document.getElementById('flight-table');
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const noResults = document.getElementById('no-results');
+            
+            // סינון לפי מצב (המראה/נחיתה) ולפי חיפוש
+            const filtered = allFlights.filter(f => {
+                const matchesMode = f.CHRMINE.includes(currentMode === 'D' ? 'DEPARTED' : 'LANDED') || 
+                                    f.CHRMINE.includes(currentMode === 'D' ? 'ON TIME' : 'FINAL') ||
+                                    (currentMode === 'D' && f.CHRMINE === "") || // חלק מהמראות ללא סטטוס
+                                    f.CHRMINE.includes(currentMode === 'D' ? 'המריאה' : 'נחתה');
+                
+                // בגלל שהדאטה של הממשלה קצת "מלוכלך", נסנן לפי שדה ה-CHRMINE (סטטוס)
+                const isDeparture = f.CHRMINE.includes("DEPARTED") || f.CHRMINE.includes("המריאה") || f.CHRMINE.includes("CHECK-IN");
+                const isArrival = f.CHRMINE.includes("LANDED") || f.CHRMINE.includes("נחתה") || f.CHRMINE.includes("FINAL");
+                
+                const modeFilter = (currentMode === 'D' ? isDeparture : isArrival);
 
-            // רשימת IDs שהגיעו עכשיו
-            const currentIds = buses.map(b => b.id);
-
-            // הסרת מרקרים ישנים שלא נמצאים בדו"ח האחרון
-            Object.keys(markers).forEach(id => {
-                if (!currentIds.includes(parseInt(id))) {
-                    map.removeLayer(markers[id]);
-                    delete markers[id];
-                }
+                const searchStr = `${f.CHOPER} ${f.CHFLTN} ${f.CHLOC1CH}`.toLowerCase();
+                return modeFilter && searchStr.includes(searchTerm);
             });
 
-            buses.forEach(bus => {
-                if (!bus.latitude || !bus.longitude) return;
+            tableBody.innerHTML = filtered.map(f => {
+                const time = f.CHSTOL.split('T')[1].substring(0, 5); // פורמט HH:MM
+                const status = f.CHRMINE || "בזמן";
+                
+                let statusClass = "";
+                if(status.includes("LANDED") || status.includes("DEPARTED")) statusClass = "status-landed";
+                if(status.includes("CANCELLED") || status.includes("DELAYED")) statusClass = "status-delayed";
+                if(status.includes("FINAL")) statusClass = "status-final";
 
-                const routeName = bus.siri_ride?.gtfs_ride?.gtfs_route?.route_short_name || "?";
-                const longName = bus.siri_ride?.gtfs_ride?.gtfs_route?.route_long_name || "קו לא מזוהה";
-                const lastSeen = new Date(bus.recorded_at_time).toLocaleTimeString('he-IL');
-
-                // 1. עדכון המפה
-                if (markers[bus.id]) {
-                    // אם האוטובוס כבר על המפה, רק נזיז אותו
-                    markers[bus.id].setLatLng([bus.latitude, bus.longitude]);
-                } else {
-                    // יצירת אייקון עם מספר הקו
-                    const icon = L.divIcon({
-                        className: 'bus-div-icon',
-                        html: `<div>${routeName}</div>`,
-                        iconSize: [26, 26]
-                    });
-
-                    const marker = L.marker([bus.latitude, bus.longitude], { icon: icon })
-                        .bindPopup(`<b>קו ${routeName}</b><br>${longName}<br><small>עודכן: ${lastSeen}</small>`);
-                    
-                    marker.addTo(map);
-                    markers[bus.id] = marker;
-                }
-
-                // 2. עדכון הרשימה בצד
-                const item = document.createElement('div');
-                item.className = "p-3 hover:bg-blue-50 cursor-pointer transition text-sm";
-                item.innerHTML = `
-                    <div class="flex justify-between font-bold text-blue-800">
-                        <span>קו ${routeName}</span>
-                        <span class="text-[10px] text-gray-400">${lastSeen}</span>
-                    </div>
-                    <div class="text-[11px] text-gray-500 truncate">${longName}</div>
+                return `
+                    <tr class="flight-row hover:bg-slate-800/50 transition duration-150">
+                        <td class="p-4 font-bold">${f.CHOPER}</td>
+                        <td class="p-4 text-blue-400 font-mono">${f.CHFLTN}</td>
+                        <td class="p-4 text-lg font-medium">${f.CHLOC1CH}</td>
+                        <td class="p-4 text-center font-bold text-slate-500">${f.CHTERM}</td>
+                        <td class="p-4 font-mono text-slate-300">${time}</td>
+                        <td class="p-4 font-bold text-sm ${statusClass}">${status}</td>
+                    </tr>
                 `;
-                item.onclick = () => {
-                    map.setView([bus.latitude, bus.longitude], 16);
-                    markers[bus.id].openPopup();
-                };
-                listContainer.appendChild(item);
-            });
+            }).join('');
+
+            noResults.classList.toggle('hidden', filtered.length > 0);
         }
 
-        // --- הפעלה אוטומטית ---
-        fetchData();
-        setInterval(fetchData, 15000); // רענון אוטומטי כל 15 שניות
+        function changeMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-dep').classList.toggle('bg-blue-600', mode === 'D');
+            document.getElementById('btn-arr').classList.toggle('bg-blue-600', mode === 'A');
+            renderTable();
+        }
 
+        // האזנה לחיפוש
+        document.getElementById('search').addEventListener('input', renderTable);
+
+        // הפעלה ורענון אוטומטי כל דקה
+        fetchFlights();
+        setInterval(fetchFlights, 60000);
     </script>
 </body>
 </html>
