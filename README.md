@@ -1,3 +1,1 @@
-# fun-zone
-
-https://almog787.github.io/Emergency-Radar/
+https://almog787.github.io/Stock-information-/
