@@ -1,7 +1,7 @@
-name: Intraday Market Update
+name: Market Intelligence Update
 on:
   schedule:
-    - cron: '*/15 * * * *' # רץ כל 15 דקות
+    - cron: '0 0 * * *' # פעם ביום מספיק לנתוני All-time יומיים
   workflow_dispatch:
 
 jobs:
@@ -17,12 +17,12 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies
         run: pip install yfinance pandas numpy
-      - name: Run intraday collector
+      - name: Run market collector
         run: python collect_market.py
       - name: Commit changes
         run: |
-          git config --global user.name 'Intraday Bot'
+          git config --global user.name 'Market Bot'
           git config --global user.email 'bot@market.ai'
           git add data/*.json
-          git commit -m "Intraday Market Data Sync" || exit 0
+          git commit -m "Update All-Time Market Data" || exit 0
           git push
