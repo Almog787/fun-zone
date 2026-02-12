@@ -19,30 +19,34 @@ class PandasEncoder(json.JSONEncoder):
 
 def calculate_manual_indicators(df):
     if df.empty: return df
+    # RSI 14
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / (loss + 1e-9)
     df['RSI'] = 100 - (100 / (1 + rs))
+    # SMA
     df['SMA50'] = df['Close'].rolling(window=50).mean()
     df['SMA200'] = df['Close'].rolling(window=200).mean()
     return df.fillna(0)
 
 def calculate_score(row):
     score = 50
-    signals = []
+    signals = {"en": [], "he": []}
     if row['Close'] > row['SMA200']:
         score += 20
-        signals.append("📈 Uptrend")
+        signals["en"].append("📈 Uptrend"); signals["he"].append("📈 מגמת עלייה")
     else:
         score -= 20
-        signals.append("📉 Downtrend")
+        signals["en"].append("📉 Downtrend"); signals["he"].append("📉 מגמת ירידה")
+    
     if row['RSI'] < 35:
         score += 15
-        signals.append("🟢 Oversold")
+        signals["en"].append("🟢 Oversold"); signals["he"].append("🟢 מכירת יתר")
     elif row['RSI'] > 70:
         score -= 15
-        signals.append("🔴 Overbought")
+        signals["en"].append("🔴 Overbought"); signals["he"].append("🔴 קניית יתר")
+        
     return max(0, min(100, score)), signals
 
 def process_ticker(symbol):
@@ -58,10 +62,10 @@ def process_ticker(symbol):
                 existing_df['Date'] = pd.to_datetime(existing_df['Date']).dt.tz_localize(None)
         except: pass
 
-    # אם אין נתונים - מוריד הכל (max), אם יש - מוריד רק חודש אחרון לעדכון
+    # הורדת נתונים (All-time אם חדש, חודש אחרון אם קיים)
     period = "max" if existing_df.empty else "1mo"
     new_data = stock.history(period=period, interval="1d")
-    if new_data.empty: return
+    if new_data.empty: return None
     
     new_data.reset_index(inplace=True)
     new_data['Date'] = pd.to_datetime(new_data['Date']).dt.tz_localize(None)
@@ -80,7 +84,8 @@ def process_ticker(symbol):
         "updated": datetime.now().strftime("%Y-%m-%d %H:%M")
     }
     
-    history_to_save = combined_df[['Date', 'Close', 'SMA200', 'SMA50', 'Volume']].copy()
+    # שמירה (OHLCV לטובת גרפי נרות)
+    history_to_save = combined_df[['Date', 'Open', 'High', 'Low', 'Close', 'SMA200', 'SMA50', 'Volume']].copy()
     history_to_save['Date'] = history_to_save['Date'].dt.strftime('%Y-%m-%d %H:%M')
     
     with open(file_path, 'w') as f:
