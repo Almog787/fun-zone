@@ -57,10 +57,10 @@ def create_pro_chart(json_path, symbol, score):
         df['Date'] = pd.to_datetime(df['Date'])
         df.set_index('Date', inplace=True)
         
-        # שימוש ב-120 ימי מסחר אחרונים לתצוגה ברורה
+        # הצגת 120 ימי מסחר אחרונים (כחצי שנה)
         df_plot = df.tail(120).copy()
 
-        # הגדרת אינדיקטורים להצגה (תיקון שמות עמודות ללא קו תחתי)
+        # הגדרת אינדיקטורים להצגה - תיקון שמות ללא קו תחתי
         apds = []
         if 'SMA50' in df_plot.columns:
             apds.append(mpf.make_addplot(df_plot['SMA50'], color='#2962ff', width=1))
@@ -72,30 +72,28 @@ def create_pro_chart(json_path, symbol, score):
         mc = mpf.make_marketcolors(up='#00ff41', down='#ff003c', edge='inherit', wick='inherit', volume='in')
         s = mpf.make_mpf_style(base_mpf_style='nightclouds', marketcolors=mc, gridstyle=':', rc={'font.size': 10})
 
-        # שם הקובץ לשמירה
         filename = f"{CHARTS_DIR}/{symbol.lower()}.png"
         
         # יצירת הגרף
         mpf.plot(df_plot, type='candle', style=s, addplot=apds, volume=True,
                  savefig=dict(fname=filename, dpi=100, bbox_inches='tight'), 
-                 figsize=(12, 6), title=f"\n{symbol} Institutional Analysis")
+                 figsize=(12, 6), title=f"\n{symbol.upper()} Institutional Analysis")
         
         print(f"Chart created successfully for {symbol}")
     except Exception as e:
         print(f"Error creating chart for {symbol}: {e}")
 
 def generate_readme():
-    # טעינת הדירוגים מהקובץ המרכזי שנוצר ב-Step 1
+    # טעינת הדירוגים
     rankings_path = os.path.join(DATA_DIR, "market_rankings.json")
     if not os.path.exists(rankings_path):
-        print("Missing market_rankings.json. Run collection first.")
+        print("Missing market_rankings.json")
         return
     
     try:
         with open(rankings_path, 'r') as f:
             rankings = json.load(f)
-    except Exception as e:
-        print(f"Error loading rankings: {e}")
+    except:
         return
     
     audit_data = generate_data_audit()
@@ -112,17 +110,17 @@ def generate_readme():
 ---
 
 ### 🇺🇸 English Summary
-Automated technical analysis on the Top 10 US stocks. The system monitors long-term trends (SMA200) and momentum (RSI) to generate AI-driven signals.
+Automated technical analysis on the Top 10 US stocks. The system monitors long-term trends and momentum to generate AI-driven trade signals.
 
 ### 🇮🇱 תקציר בעברית
-ניתוח טכני אוטומטי ל-10 המניות הגדולות בארה"ב. המערכת מנטרת מגמות ארוכות טווח (SMA200) ומומנטום כדי להפיק איתותי מסחר מבוססי AI.
+ניתוח טכני אוטומטי ל-10 המניות הגדולות בארה"ב. המערכת מנטרת מגמות ארוכות טווח ומומנטום כדי להפיק איתותי מסחר מבוססי בינה מלאכותית.
 
 ---
 
 ## 🏆 Top Trade Opportunities | הזדמנויות מסחר מובילות
 """
 
-    # יצירת גרפים ל-3 המניות המובילות בדירוג
+    # יצירת גרפים ל-3 המניות המובילות
     for i in range(min(3, len(rankings))):
         r = rankings[i]
         symbol = r['symbol']
@@ -153,9 +151,9 @@ Automated technical analysis on the Top 10 US stocks. The system monitors long-t
 
 | Term | מונח | Description | תיאור |
 | :--- | :--- | :--- | :--- |
-| **AI Score** | **ציון AI** | Overall quality rating (0-100). | דירוג איכות כללי (0-100). |
-| **RSI** | **מדד חוזק** | Momentum indicator. <30 is Oversold. | מדד מומנטום. מתחת ל-30 נחשב מכירת יתר. |
-| **SMA 200** | **ממוצע 200** | Primary long-term trend line. | קו המגמה המרכזי לטווח ארוך. |
+| **AI Score** | **ציון AI** | Overall rating (0-100). >70 is Bullish, <30 is Bearish. | דירוג כללי (0-100). מעל 70 חיובי, מתחת ל-30 שלילי. |
+| **RSI** | **מדד חוזק** | Below 30 = Oversold (Buy), Above 70 = Overbought (Sell). | מתחת ל-30 = מכירת יתר, מעל 70 = קניית יתר. |
+| **SMA 200** | **ממוצע 200** | The orange dashed line. Primary long-term trend indicator. | הקו המקווקו הכתום. אינדיקטור מגמה ארוך טווח. |
 
 ---
 
@@ -170,7 +168,7 @@ Automated technical analysis on the Top 10 US stocks. The system monitors long-t
 
     with open("README.md", "w", encoding="utf-8") as f:
         f.write(md)
-    print("README generated successfully with bilingual support and charts.")
+    print("README generated successfully.")
 
 if __name__ == "__main__":
     generate_readme()
