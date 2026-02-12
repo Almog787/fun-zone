@@ -2,189 +2,328 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>AI Market Radar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantIntel v2.0 | AI Market Radar</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;700&family=JetBrains+Mono&display=swap');
-        body { background: #0f172a; color: #f8fafc; font-family: 'Assistant', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --bg-deep: #020617;
+            --panel: #0f172a;
+            --accent: #3b82f6;
+            --positive: #10b981;
+            --negative: #f43f5e;
+            --warning: #facc15;
+        }
+
+        body { 
+            background-color: var(--bg-deep); 
+            color: #f1f5f9; 
+            font-family: 'Assistant', sans-serif; 
+            height: 100vh;
+            overflow: hidden;
+        }
+
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
         
-        /* Score Colors */
-        .score-high { color: #4ade80; border-color: #4ade80; }
-        .score-mid { color: #facc15; border-color: #facc15; }
-        .score-low { color: #f87171; border-color: #f87171; }
-        
-        /* Table Row Hover */
-        .rank-row:hover { background: #334155; cursor: pointer; }
-        .rank-row.active { background: #334155; border-right: 4px solid #3b82f6; }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* סרגל גלילה מעוצב */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        .active-row {
+            background: linear-gradient(to left, rgba(59, 130, 246, 0.1), transparent);
+            border-right: 4px solid var(--accent);
+        }
+
+        .score-pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        #chart-container { width: 100%; height: 100%; }
+
+        /* אנימציית טעינה */
+        .loading-shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="flex flex-col">
 
-    <!-- Navbar -->
-    <header class="h-16 bg-slate-900 border-b border-slate-700 flex justify-between items-center px-6 shrink-0">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-brain text-purple-500 text-2xl"></i>
+    <!-- Header / Top Bar -->
+    <header class="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-50">
+        <div class="flex items-center gap-4">
+            <div class="bg-blue-600 p-2 rounded-lg">
+                <i class="fas fa-brain text-white"></i>
+            </div>
             <div>
-                <h1 class="font-black text-lg tracking-wide uppercase">Market <span class="text-purple-500">AI Radar</span></h1>
-                <p class="text-[10px] text-slate-400">Automated Technical Analysis Engine</p>
+                <h1 class="font-black text-sm uppercase tracking-tighter italic">QUANT<span class="text-blue-500">INTEL</span> PRO</h1>
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Market Live Data</span>
+                </div>
             </div>
         </div>
-        <div id="last-sync" class="text-xs text-slate-500 font-bold mono">SYNCING...</div>
+
+        <div class="hidden md:flex items-center gap-8">
+            <div class="text-center">
+                <div class="text-[9px] text-slate-500 uppercase font-bold">סנכרון אחרון</div>
+                <div id="last-sync" class="text-xs font-bold mono">--:--:--</div>
+            </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div class="flex gap-4">
+                <button onclick="window.location.reload()" class="text-slate-400 hover:text-white transition"><i class="fas fa-sync-alt"></i></button>
+                <a href="https://github.com/Almog787/Stock-information-" target="_blank" class="text-slate-400 hover:text-white transition"><i class="fab fa-github"></i></a>
+            </div>
+        </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden">
         
-        <!-- Left: Rankings List -->
-        <aside class="w-96 bg-slate-900 border-l border-slate-700 flex flex-col">
-            <div class="p-4 border-b border-slate-800 bg-slate-800/50">
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Top Opportunities (AI Score)</h2>
+        <!-- Sidebar: Market Watchlist -->
+        <aside class="w-80 bg-slate-900 border-l border-slate-800 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-800 space-y-4">
+                <div class="relative">
+                    <i class="fas fa-search absolute right-3 top-2.5 text-slate-600 text-xs"></i>
+                    <input type="text" id="ticker-search" oninput="filterWatchlist()" placeholder="חפש מנייה..." 
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 pr-9 pl-3 text-xs outline-none focus:border-blue-500 transition-all">
+                </div>
             </div>
+            
             <div id="rankings-list" class="flex-1 overflow-y-auto">
-                <!-- Rankings injected here -->
-                <div class="p-10 text-center text-slate-500 text-sm animate-pulse">טוען דירוג מניות...</div>
+                <!-- Rows will be injected here -->
             </div>
         </aside>
 
-        <!-- Right: Analysis View -->
-        <main class="flex-1 flex flex-col bg-[#0b1120] p-6 overflow-y-auto">
+        <!-- Main Workspace -->
+        <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden">
             
-            <!-- Top Stats -->
-            <div class="grid grid-cols-4 gap-4 mb-6">
-                <div class="card p-4">
-                    <div class="text-xs text-slate-500 uppercase">AI Score</div>
-                    <div id="view-score" class="text-4xl font-black mono mt-1">---</div>
+            <!-- Context Bar -->
+            <div class="h-20 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between px-8 shrink-0">
+                <div class="flex items-center gap-6">
+                    <div>
+                        <h2 id="view-symbol" class="text-3xl font-black tracking-tighter">---</h2>
+                        <div id="view-name" class="text-xs text-slate-500 font-bold">בחר מנייה מהרשימה</div>
+                    </div>
+                    <div class="h-10 w-px bg-slate-800"></div>
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase font-bold">מחיר שוק</div>
+                        <div id="view-price" class="text-xl font-bold mono">---</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase font-bold">שינוי יומי</div>
+                        <div id="view-change" class="text-xl font-bold mono">---</div>
+                    </div>
                 </div>
-                <div class="card p-4">
-                    <div class="text-xs text-slate-500 uppercase">Current Price</div>
-                    <div id="view-price" class="text-2xl font-bold mt-2">---</div>
-                    <div id="view-change" class="text-xs font-bold">---</div>
-                </div>
-                <div class="card p-4 col-span-2">
-                    <div class="text-xs text-slate-500 uppercase mb-2">Detected Signals</div>
-                    <div id="view-signals" class="flex flex-wrap gap-2">
-                        <!-- Signals badges -->
+
+                <div class="flex items-center gap-4">
+                    <div class="text-left">
+                        <div class="text-[10px] text-slate-500 uppercase font-bold">AI Recommendation</div>
+                        <div id="view-recommendation" class="text-lg font-black italic tracking-tight">---</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Chart -->
-            <div class="card p-1 flex-1 min-h-[400px] relative">
-                <div id="chart-container" class="w-full h-full"></div>
-            </div>
+            <!-- Dashboard Content -->
+            <div class="flex-1 p-6 overflow-y-auto space-y-6">
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="glass-panel p-4 rounded-2xl relative overflow-hidden">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">AI Score</div>
+                        <div id="card-score" class="text-3xl font-black mono">--</div>
+                        <div class="w-full bg-slate-800 h-1 mt-3 rounded-full overflow-hidden">
+                            <div id="score-bar" class="h-full bg-blue-500 transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">RSI (Relative Strength)</div>
+                        <div id="card-rsi" class="text-3xl font-black mono">--</div>
+                        <div id="rsi-status" class="text-[10px] font-bold mt-1 uppercase">Neutral</div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Trend Strength (ADX)</div>
+                        <div id="card-adx" class="text-3xl font-black mono">--</div>
+                        <div id="adx-status" class="text-[10px] font-bold mt-1 uppercase">--</div>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl flex flex-col justify-center">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase mb-2">Technical Signals</div>
+                        <div id="card-signals" class="flex flex-wrap gap-1">
+                            <!-- Badges -->
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Chart Box -->
+                <div class="glass-panel rounded-3xl p-1 h-[500px] relative overflow-hidden shadow-2xl">
+                    <div id="chart-container"></div>
+                    <!-- Chart Legend Overlay -->
+                    <div class="absolute top-4 right-4 z-10 flex gap-2">
+                        <div class="bg-slate-900/80 px-3 py-1 rounded-lg border border-slate-700 text-[10px] font-bold text-slate-400">
+                            <span class="inline-block w-2 h-2 rounded-full bg-yellow-500 mr-1"></span> SMA 200
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </main>
     </div>
 
     <script>
-        let chart, candleSeries;
+        let chart, candleSeries, volumeSeries, currentRankings = [];
 
         async function init() {
             try {
-                // 1. טעינת קובץ הדירוגים שנוצר ע"י הפייתון
                 const res = await fetch('data/market_rankings.json?v=' + Date.now());
-                const rankings = await res.json();
+                currentRankings = await res.json();
                 
-                renderRankings(rankings);
+                renderWatchlist(currentRankings);
+                if(currentRankings.length > 0) loadStockView(currentRankings[0]);
                 
-                // טעינת המניה הראשונה (הכי חזקה) אוטומטית
-                if(rankings.length > 0) loadStockView(rankings[0]);
-                
-                document.getElementById('last-sync').innerText = "UPDATED: " + rankings[0].updated;
-
+                document.getElementById('last-sync').innerText = currentRankings[0].updated.split(' ')[1];
             } catch (e) {
                 console.error(e);
-                alert("המערכת מעבדת נתונים. נסה שוב בעוד מספר דקות.");
+                alert("נתוני המערכת בטעינה ראשונית ב-GitHub. המתן כדקה.");
             }
         }
 
-        function renderRankings(rankings) {
-            const list = document.getElementById('rankings-list');
-            list.innerHTML = rankings.map((stock, i) => {
-                let scoreClass = stock.score >= 70 ? 'text-green-400' : (stock.score <= 30 ? 'text-red-400' : 'text-yellow-400');
+        function renderWatchlist(data) {
+            const container = document.getElementById('rankings-list');
+            container.innerHTML = data.map((stock, i) => {
+                const isPos = stock.change >= 0;
+                const scoreColor = stock.score >= 70 ? 'bg-emerald-500/20 text-emerald-400' : 
+                                   (stock.score <= 35 ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400');
+                
                 return `
-                <div onclick='loadStockView(${JSON.stringify(stock).replace(/'/g, "")})' 
-                     class="rank-row p-4 border-b border-slate-800 flex justify-between items-center transition">
+                <div onclick="handleRowClick(this, '${stock.symbol}')" 
+                    class="stock-row p-4 border-b border-slate-800/50 flex justify-between items-center cursor-pointer hover:bg-slate-800/30 transition group">
                     <div>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-slate-500 w-4">#${i+1}</span>
-                            <span class="font-black text-lg text-white">${stock.symbol}</span>
+                            <span class="font-black text-white group-hover:text-blue-400 transition">${stock.symbol}</span>
+                            <span class="score-pill ${scoreColor}">${stock.score}</span>
                         </div>
-                        <div class="text-[10px] text-slate-400">${stock.name.substring(0, 20)}...</div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase truncate w-32">${stock.name}</div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xl font-black mono ${scoreClass}">${stock.score}</div>
-                        <div class="text-[9px] uppercase font-bold text-slate-600">Score</div>
+                        <div class="text-xs font-bold mono">$${stock.price.toFixed(2)}</div>
+                        <div class="text-[10px] font-bold mono ${isPos ? 'text-emerald-500' : 'text-rose-500'}">
+                            ${isPos ? '+' : ''}${stock.change.toFixed(2)}%
+                        </div>
                     </div>
                 </div>
                 `;
             }).join('');
         }
 
-        async function loadStockView(meta) {
-            // Update UI Stats
-            document.getElementById('view-price').innerText = `$${meta.price.toFixed(2)}`;
-            const changeEl = document.getElementById('view-change');
-            changeEl.innerText = `${meta.change > 0 ? '+' : ''}${meta.change.toFixed(2)}%`;
-            changeEl.className = `text-xs font-bold ${meta.change >= 0 ? 'text-green-500' : 'text-red-500'}`;
+        function handleRowClick(el, symbol) {
+            document.querySelectorAll('.stock-row').forEach(row => row.classList.remove('active-row'));
+            el.classList.add('active-row');
             
-            const scoreEl = document.getElementById('view-score');
-            scoreEl.innerText = meta.score;
-            scoreEl.className = `text-4xl font-black mono mt-1 ${meta.score >= 70 ? 'text-green-400' : (meta.score <= 30 ? 'text-red-400' : 'text-yellow-400')}`;
+            const stock = currentRankings.find(s => s.symbol === symbol);
+            loadStockView(stock);
+        }
 
-            // Render Signals
-            const sigContainer = document.getElementById('view-signals');
-            sigContainer.innerHTML = meta.signals.map(s => 
-                `<span class="px-2 py-1 bg-slate-700 rounded text-[10px] font-bold text-white border border-slate-600">${s}</span>`
+        async function loadStockView(stock) {
+            // Update Header & Stats
+            document.getElementById('view-symbol').innerText = stock.symbol;
+            document.getElementById('view-name').innerText = stock.name;
+            document.getElementById('view-price').innerText = `$${stock.price.toFixed(2)}`;
+            
+            const changeEl = document.getElementById('view-change');
+            changeEl.innerText = `${stock.change > 0 ? '+' : ''}${stock.change.toFixed(2)}%`;
+            changeEl.className = `text-xl font-bold mono ${stock.change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`;
+
+            // AI Info
+            document.getElementById('card-score').innerText = stock.score;
+            document.getElementById('score-bar').style.width = stock.score + '%';
+            document.getElementById('card-rsi').innerText = stock.rsi.toFixed(1);
+            document.getElementById('card-adx').innerText = stock.adx.toFixed(1);
+            
+            const recEl = document.getElementById('view-recommendation');
+            recEl.innerText = stock.score >= 70 ? 'STRONG BUY' : (stock.score <= 35 ? 'AVOID / SELL' : 'NEUTRAL HOLD');
+            recEl.className = `text-lg font-black italic ${stock.score >= 70 ? 'text-emerald-400' : (stock.score <= 35 ? 'text-rose-400' : 'text-slate-400')}`;
+
+            // Badges
+            document.getElementById('card-signals').innerHTML = stock.signals.map(s => 
+                `<span class="bg-slate-800 text-[9px] px-2 py-1 rounded border border-slate-700 font-bold">${s}</span>`
             ).join('');
-            if(meta.signals.length === 0) sigContainer.innerHTML = `<span class="text-slate-500 text-xs italic">אין איתותים מיוחדים</span>`;
 
-            // Load Chart Data
-            const res = await fetch(`data/${meta.symbol}_daily.json?v=${Date.now()}`);
-            const json = await res.json();
-            renderChart(json.history);
+            // Load Chart
+            const res = await fetch(`data/${stock.symbol.toLowerCase()}_daily.json?v=${Date.now()}`);
+            const detail = await res.json();
+            renderChart(detail.history);
         }
 
         function renderChart(data) {
             const container = document.getElementById('chart-container');
-            container.innerHTML = ''; // Reset chart div
+            container.innerHTML = '';
             
             chart = LightweightCharts.createChart(container, {
-                layout: { background: { type: 'solid', color: '#1e293b' }, textColor: '#cbd5e1' },
-                grid: { vertLines: { color: '#334155' }, horzLines: { color: '#334155' } },
-                rightPriceScale: { borderColor: '#475569' },
-                timeScale: { borderColor: '#475569' },
+                layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#64748b' },
+                grid: { vertLines: { color: 'rgba(255,255,255,0.02)' }, horzLines: { color: 'rgba(255,255,255,0.02)' } },
+                timeScale: { borderColor: 'rgba(255,255,255,0.1)' },
+                rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' },
             });
 
             candleSeries = chart.addCandlestickSeries({
-                upColor: '#4ade80', downColor: '#f87171', borderVisible: false, wickUpColor: '#4ade80', wickDownColor: '#f87171'
+                upColor: '#10b981', downColor: '#f43f5e', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#f43f5e'
             });
 
-            const chartData = data.map(d => ({
-                time: d.Date,
-                open: d.Open, high: d.High, low: d.Low, close: d.Close
-            }));
+            candleSeries.setData(data.map(d => ({
+                time: d.Date, open: d.Open, high: d.High, low: d.Low, close: d.Close
+            })));
 
-            candleSeries.setData(chartData);
+            // ווליום Overlay
+            volumeSeries = chart.addHistogramSeries({
+                color: '#3b82f6',
+                priceFormat: { type: 'volume' },
+                priceScaleId: '', 
+                scaleMargins: { top: 0.8, bottom: 0 },
+            });
             
-            // הוספת קו SMA200
-            const smaLine = chart.addLineSeries({ color: '#facc15', lineWidth: 2, title: 'SMA 200' });
+            volumeSeries.setData(data.map(d => ({
+                time: d.Date, value: d.Volume, color: d.Close >= d.Open ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.2)'
+            })));
+
+            // SMA 200
+            const smaLine = chart.addLineSeries({ color: '#f59e0b', lineWidth: 1.5, priceLineVisible: false });
             smaLine.setData(data.filter(d => d.SMA200 > 0).map(d => ({ time: d.Date, value: d.SMA200 })));
 
             chart.timeScale().fitContent();
         }
 
-        // Init
+        function filterWatchlist() {
+            const q = document.getElementById('ticker-search').value.toUpperCase();
+            const rows = document.querySelectorAll('.stock-row');
+            rows.forEach(r => {
+                const text = r.innerText.toUpperCase();
+                r.style.display = text.includes(q) ? 'flex' : 'none';
+            });
+        }
+
         window.onload = init;
-        
-        // Handle Resize
-        window.addEventListener('resize', () => {
-            if(chart) chart.resize(document.getElementById('chart-container').clientWidth, document.getElementById('chart-container').clientHeight);
-        });
+        window.onresize = () => chart && chart.resize(container.clientWidth, container.clientHeight);
     </script>
 </body>
 </html>
