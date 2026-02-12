@@ -5,7 +5,7 @@ import os
 import numpy as np
 from datetime import datetime
 
-# --- מקודד JSON מיוחד לטיפול בשגיאות Timestamp ו-NumPy ---
+# מקודד מיוחד למניעת שגיאות סריאליזציה של JSON
 class PandasEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, pd.Timestamp):
@@ -19,7 +19,7 @@ class PandasEncoder(json.JSONEncoder):
         return super(PandasEncoder, self).default(obj)
 
 def calculate_indicators(df):
-    # חישוב RSI
+    # RSI 14
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -30,7 +30,7 @@ def calculate_indicators(df):
     df['SMA50'] = df['Close'].rolling(window=50).mean()
     df['SMA200'] = df['Close'].rolling(window=200).mean()
     
-    # מילוי ערכים חסרים (חיוני ל-JSON)
+    # ניקוי ערכים לא חוקיים ל-JSON
     df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
     return df
 
@@ -41,16 +41,14 @@ def update_database():
 
     # 1. השגת נתונים
     if os.path.exists(file_name):
-        print("Loading existing database...")
-        # מוריד חודש אחרון לעדכון אינטרוול שעתי
+        print("Updating existing database...")
         new_data = stock.history(period="1mo", interval="1h")
         with open(file_name, 'r') as f:
             old_db = json.load(f)
             df_old = pd.DataFrame(old_db['history'])
             df_old['Datetime'] = pd.to_datetime(df_old['Datetime'])
     else:
-        print("Creating new database (Full History)...")
-        # פעם ראשונה - מוריד הכל (יומי)
+        print("Downloading full history (Max)...")
         new_data = stock.history(period="max", interval="1d")
         df_old = pd.DataFrame()
 
@@ -65,11 +63,9 @@ def update_database():
     # 3. חישוב אינדיקטורים
     combined_df = calculate_indicators(combined_df)
     
-    # 4. הכנת מטא-דאטה
+    # 4. הכנת פלט
     latest = combined_df.iloc[-1]
-    
-    # חיתוך ל-2000 שורות אחרונות למניעת קובץ כבד מדי
-    df_to_save = combined_df.tail(2000).copy()
+    df_to_save = combined_df.tail(2000).copy() # שמירה על גודל קובץ סביר
     
     output = {
         "metadata": {
@@ -84,14 +80,9 @@ def update_database():
         "history": df_to_save.to_dict(orient='records')
     }
 
-    # 5. שמירה סופית עם המקודד המיוחד
     with open(file_name, 'w') as f:
         json.dump(output, f, indent=2, cls=PandasEncoder)
 
 if __name__ == "__main__":
-    try:
-        update_database()
-        print("NVDA Database updated successfully.")
-    except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
-        exit(1)
+    update_database()
+    print("Database updated successfully.")
