@@ -6,17 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       run_collect:
-        description: 'Step 1: Run Data Collection & AI Analysis'
+        description: 'Step 1: Data Collection & AI Analysis'
         type: boolean
         default: true
       run_readme:
-        description: 'Step 2: Generate Pro Charts & Data Audit README'
+        description: 'Step 2: Generate Pro Charts & README'
         type: boolean
         default: true
-      sync_delay:
-        description: 'Seconds to wait between steps'
-        type: string
-        default: '40'
 
 jobs:
   analyze-and-render:
@@ -33,16 +29,19 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Compatible Dependencies
+      - name: Install Dependencies (Resilient Method)
         run: |
           python -m pip install --upgrade pip
-          # 1. התקנת תשתיות בגרסאות נעולות ליציבות
-          pip install numpy==1.26.4
-          pip install pandas==1.5.3
-          pip install yfinance==0.2.40
           
-          # 2. הורדת pandas-ta מהענף הנכון (master) והתקנה
+          # 1. התקנת ספריות בסיס בגרסאות יציבות
+          pip install numpy==1.26.4 pandas==1.5.3 yfinance==0.2.40
+          
+          # 2. הורדת pandas-ta עם מנגנון גיבוי (Fallback)
+          # מנסה להוריד מענף 'main'. אם נכשל (||), מנסה להוריד מ-'master'
+          curl -L https://github.com/twopirllc/pandas-ta/archive/refs/heads/main.zip -o pandas-ta.zip || \
           curl -L https://github.com/twopirllc/pandas-ta/archive/refs/heads/master.zip -o pandas-ta.zip
+          
+          # התקנת הקובץ שהורד
           pip install pandas-ta.zip
           
           # 3. התקנת ספריות גרפיות
@@ -52,11 +51,7 @@ jobs:
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_collect == 'true' }}
         run: python collect_data.py
 
-      - name: Buffer for File System Sync
-        if: ${{ (github.event_name == 'schedule' || (github.event.inputs.run_collect == 'true' && github.event.inputs.run_readme == 'true')) }}
-        run: sleep ${{ github.event.inputs.sync_delay || 40 }}
-
-      - name: Generate Pro Visuals & Data Audit
+      - name: Generate Pro Visuals & README
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_readme == 'true' }}
         run: python create_readme.py
 
@@ -64,9 +59,6 @@ jobs:
         run: |
           git config --global user.name 'Quant-Intelligence-Bot'
           git config --global user.email 'bot@quant-intel.ai'
-          
-          # הוספת קבצים שנוצרו
           git add data/*.json charts/*.png README.md || true
-          
-          git commit -m "Automated Sync: Institutional Analysis & Charts [Skip CI]" || echo "No changes to commit"
+          git commit -m "Automated Sync: AI Analysis & Charts" || echo "No changes to commit"
           git push
