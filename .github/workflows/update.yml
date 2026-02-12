@@ -1,7 +1,7 @@
 name: Market Analysis Engine
 on:
   schedule:
-    - cron: '0 0 * * *' # הרצה יומית (בסוף יום מסחר)
+    - cron: '0 0 * * *' 
   workflow_dispatch:
 
 jobs:
@@ -23,6 +23,7 @@ jobs:
         run: |
           git config --global user.name 'Analyst Bot'
           git config --global user.email 'bot@market.ai'
-          git add data/*.json
-          git commit -m "Daily Market Analysis & Rankings" || exit 0
+          # הוספנו את README.md לפקודת ההוספה
+          git add data/*.json README.md
+          git commit -m "Update Market Data & README" || exit 0
           git push
