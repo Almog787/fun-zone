@@ -36,14 +36,13 @@ jobs:
       - name: Install Compatible Dependencies
         run: |
           python -m pip install --upgrade pip
-          # 1. התקנת תשתיות יציבות (גרסאות ספציפיות)
+          # 1. התקנת תשתיות בגרסאות נעולות ליציבות
           pip install numpy==1.26.4
           pip install pandas==1.5.3
           pip install yfinance==0.2.40
           
-          # 2. הורדת pandas-ta כ-ZIP והתקנה (עוקף בעיות Git ו-CORS)
-          # מנסה להוריד מענף main (הסטנדרט החדש)
-          curl -L https://github.com/twopirllc/pandas-ta/archive/refs/heads/main.zip -o pandas-ta.zip
+          # 2. הורדת pandas-ta מהענף הנכון (master) והתקנה
+          curl -L https://github.com/twopirllc/pandas-ta/archive/refs/heads/master.zip -o pandas-ta.zip
           pip install pandas-ta.zip
           
           # 3. התקנת ספריות גרפיות
@@ -66,7 +65,7 @@ jobs:
           git config --global user.name 'Quant-Intelligence-Bot'
           git config --global user.email 'bot@quant-intel.ai'
           
-          # וידוא שקיימים קבצים להוספה כדי למנוע שגיאות ריקה
+          # הוספת קבצים שנוצרו
           git add data/*.json charts/*.png README.md || true
           
           git commit -m "Automated Sync: Institutional Analysis & Charts [Skip CI]" || echo "No changes to commit"
