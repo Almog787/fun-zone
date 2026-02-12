@@ -1,11 +1,8 @@
 name: Pro Market Intelligence System
 
 on:
-  # הרצה אוטומטית בכל יום בחצות (UTC)
   schedule:
     - cron: '0 0 * * *'
-  
-  # אפשרות להרצה ידנית עם תפריט בחירה
   workflow_dispatch:
     inputs:
       run_collect:
@@ -24,55 +21,47 @@ on:
 jobs:
   analyze-and-render:
     runs-on: ubuntu-latest
-    
-    # הרשאות כתיבה לבוט (חובה לעדכון קבצי JSON, תמונות ו-README)
     permissions:
       contents: write
 
     steps:
-      # 1. משיכת הקוד מה-Repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2. התקנת סביבת Python
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10 # שדרוג קל ל-3.10 ליציבות טובה יותר
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
-      # 3. התקנת ספריות כבדות (Heavyweight Libs)
-      - name: Install Professional Quantitative Libs
+      - name: Install Compatible Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install yfinance pandas numpy pandas_ta mplfinance matplotlib
+          # התקנת גרסאות ספציפיות שמתאימות ל-pandas-ta ולניתוח פיננסי
+          # אנחנו נועלים את numpy מתחת ל-2.0 ואת pandas בגרסה 1.5.x
+          pip install numpy==1.26.4
+          pip install pandas==1.5.3
+          pip install yfinance==0.2.40
+          pip install pandas-ta==0.3.14b0
+          pip install mplfinance matplotlib
 
-      # 4. שלב א': איסוף וניתוח (Python pandas-ta Engine)
       - name: Execute Data Collection & Analysis
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_collect == 'true' }}
         run: python collect_data.py
 
-      # 5. שלב ביניים: המתנה לסנכרון מערכת הקבצים
       - name: Buffer for File System Sync
         if: ${{ (github.event_name == 'schedule' || (github.event.inputs.run_collect == 'true' && github.event.inputs.run_readme == 'true')) }}
         run: sleep ${{ github.event.inputs.sync_delay || 40 }}
 
-      # 6. שלב ב': יצירת גרפים ודוח ביקורת (mplfinance & Audit Engine)
       - name: Generate Pro Visuals & Data Audit
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_readme == 'true' }}
         run: python create_readme.py
 
-      # 7. שלב ג': שמירת כל השינויים ודחיפה ל-GitHub
       - name: Commit and Push All Updates
         run: |
           git config --global user.name 'Quant-Intelligence-Bot'
           git config --global user.email 'bot@quant-intel.ai'
-          
-          # הוספת כל סוגי הקבצים שהשתנו
           git add data/*.json
           git add charts/*.png
           git add README.md
-          
-          # ביצוע Commit רק אם יש שינויים בפועל
-          git commit -m "Automated Sync: AI Rankings, Candlestick Charts & Data Audit [Skip CI]" || echo "No changes detected to commit"
-          
+          git commit -m "Automated Sync: AI Analysis & Charts [Skip CI]" || echo "No changes to commit"
           git push
