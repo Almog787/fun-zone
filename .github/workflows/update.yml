@@ -1,70 +1,41 @@
-name: Pro Market Intelligence System
-
+name: Stable Market Intelligence
 on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
       run_collect:
-        description: 'Step 1: Run Data Collection & AI Analysis'
         type: boolean
         default: true
       run_readme:
-        description: 'Step 2: Generate Pro Charts & README'
         type: boolean
         default: true
 
 jobs:
-  analyze-and-render:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python 3.11 # שדרוג לפייתון 3.11 ליציבות מקסימלית
+      - uses: actions/checkout@v3
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          # התקנת ספריות בסיסיות בגרסאות מודרניות
-          pip install pandas==2.0.3
-          pip install numpy==1.26.4
-          pip install yfinance==0.2.40
-          
-          # התקנת pandas-ta ישירות מ-PyPI (הגרסה היציבה)
-          pip install pandas-ta
-          
-          # התקנת ספריות גרפיות
-          pip install mplfinance matplotlib
-
-      - name: Execute Data Collection & Analysis
+          python-version: '3.9'
+      - name: Install Libs
+        run: pip install yfinance pandas numpy matplotlib
+      - name: Step 1 - Data Collection
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_collect == 'true' }}
         run: python collect_data.py
-
-      - name: Generate Pro Visuals & README
+      - name: Step 2 - Wait
+        run: sleep 10
+      - name: Step 3 - Generate README
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_readme == 'true' }}
         run: python create_readme.py
-
-      - name: Commit and Push All Updates
+      - name: Commit Results
         run: |
-          git config --global user.name 'Quant-Intelligence-Bot'
-          git config --global user.email 'bot@quant-intel.ai'
+          git config --global user.name 'Market-Bot'
+          git config --global user.email 'bot@market.ai'
           git add data/*.json charts/*.png README.md || true
-          git commit -m "Automated Sync: AI Analysis & Charts" || echo "No changes to commit"
-          git push```
-
-### למה הפתרון הזה יעבוד?
-1.  **שדרוג סביבה:** עברנו ל-Python 3.11. זו סביבה מודרנית שבה רוב הספריות הפיננסיות נבדקו ועובדות היטב.
-2.  **Pandas 2.0:** שדרגנו את `pandas` לגרסה 2.0.3. הגרסה הזו עובדת חלק עם `pandas-ta` בגרסה הרשמית שלה.
-3.  **התקנה ישירה:** חזרנו להתקין את `pandas-ta` ישירות מ-PyPI (בלי ZIP ובלי Git), מה שמונע את כל הבעיות שחווינו קודם.
-
-**מה עליך לעשות:**
-1. עדכן את קובץ ה-YAML בגרסה הזו.
-2. דחוף (Push) את השינוי.
-3. הרץ את ה-Action ידנית. הפעם הוא אמור לעבור את שלב ההתקנה בהצלחה מלאה.
+          git commit -m "Stable Update [Skip CI]" || echo "No changes"
+          git push
