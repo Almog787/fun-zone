@@ -2,145 +2,171 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Market Terminal | Full History Analysis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hourly Market Terminal | Top 10 Analysis</title>
+    
+    <!-- Scripts & Styles -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;400;700;800&family=JetBrains+Mono&display=swap');
-        body { background-color: #050508; color: #e2e8f0; font-family: 'Assistant', sans-serif; }
-        .glass-panel { background: rgba(20, 20, 28, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        body { font-family: 'Assistant', sans-serif; background-color: #0d0d12; color: #e2e8f0; }
+        .card { background: rgba(22, 22, 29, 0.8); border: 1px solid #2d2d33; backdrop-filter: blur(10px); }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        .chart-container { height: 500px; position: relative; }
+        select { background-color: #1a1a24; border: 1px solid #3b82f6; color: white; }
+        
+        .skeleton { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 glass-panel p-6 rounded-[2rem]">
+        <!-- Header & Selector -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-[#16161d] p-6 rounded-3xl border border-[#2d2d33]">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-database text-white text-2xl"></i></div>
+                <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-chart-line text-white text-2xl"></i></div>
                 <div>
-                    <h1 class="text-2xl font-black uppercase tracking-tight">Market <span class="text-emerald-500">Archive</span></h1>
-                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Full Historical Analysis Engine</p>
+                    <h1 class="text-2xl font-black uppercase tracking-tight text-white">Hourly <span class="text-blue-500">Terminal</span></h1>
+                    <p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">High-Frequency Data Analysis</p>
                 </div>
             </div>
-
-            <div class="flex items-center gap-4">
-                <select id="ticker-select" onchange="loadData(this.value)" class="bg-[#1a1a24] text-white px-6 py-2.5 rounded-xl font-black text-sm outline-none border border-emerald-900/50">
-                    <option value="nvda">NVIDIA (NVDA)</option>
-                    <option value="aapl">APPLE (AAPL)</option>
-                    <option value="msft">MICROSOFT (MSFT)</option>
-                    <option value="googl">ALPHABET (GOOGL)</option>
-                    <option value="amzn">AMAZON (AMZN)</option>
-                    <option value="meta">META (META)</option>
-                    <option value="tsla">TESLA (TSLA)</option>
-                    <option value="brk-b">BERKSHIRE (BRK-B)</option>
-                    <option value="lly">ELI LILLY (LLY)</option>
-                    <option value="avgo">BROADCOM (AVGO)</option>
+            
+            <div class="flex items-center gap-3">
+                <select id="ticker-select" onchange="loadData(this.value)" class="px-6 py-2.5 rounded-xl font-black text-sm outline-none shadow-xl">
+                    <option value="nvda">NVIDIA</option>
+                    <option value="aapl">APPLE</option>
+                    <option value="msft">MICROSOFT</option>
+                    <option value="googl">GOOGLE</option>
+                    <option value="amzn">AMAZON</option>
+                    <option value="meta">META</option>
+                    <option value="tsla">TESLA</option>
+                    <option value="brk-b">BERKSHIRE</option>
+                    <option value="lly">ELI LILLY</option>
+                    <option value="avgo">BROADCOM</option>
                 </select>
             </div>
-        </header>
+        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Sidebar -->
-            <div class="lg:col-span-3 space-y-6">
-                <div id="signal-card" class="glass-panel p-8 rounded-[2rem] text-center">
-                    <div class="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest">System Signal</div>
-                    <div id="signal-text" class="text-6xl font-black mb-2 italic">---</div>
-                    <div id="signal-desc" class="text-xs text-slate-400">Loading history...</div>
+        <!-- Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Recommendation Box -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <div id="signal-card" class="card p-8 rounded-[2.5rem] text-center">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest">מנוע איתותים (שעתי)</div>
+                    <div id="signal-text" class="text-6xl font-black mb-4 italic tracking-tighter uppercase">---</div>
+                    <div id="signal-desc" class="text-xs text-slate-400 italic">טוען נתונים...</div>
                 </div>
-
-                <div class="glass-panel p-6 rounded-[2rem] space-y-4">
-                    <div class="flex justify-between border-b border-white/5 pb-2">
-                        <span class="text-xs text-slate-500">מחיר נוכחי</span>
-                        <b id="price" class="mono">---</b>
-                    </div>
-                    <div class="flex justify-between border-b border-white/5 pb-2">
-                        <span class="text-xs text-slate-500">הנפקה ראשונה</span>
-                        <b id="first-date" class="mono text-[10px]">---</b>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-xs text-slate-500">RSI</span>
-                        <b id="rsi-val" class="mono">---</b>
-                    </div>
+                <div class="card p-6 rounded-3xl space-y-4">
+                    <div class="flex justify-between items-center"><span class="text-xs text-slate-500">מחיר עדכני:</span><b id="price" class="text-xl">---</b></div>
+                    <div class="flex justify-between items-center"><span class="text-xs text-slate-500">RSI (14h):</span><b id="rsi-val">---</b></div>
+                    <div id="update-time" class="text-[9px] text-slate-600 text-center uppercase mt-2 font-mono"></div>
                 </div>
             </div>
 
-            <!-- Chart -->
-            <div class="lg:col-span-9 glass-panel p-8 rounded-[3rem]">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 id="comp-name" class="text-xl font-black text-white">---</h2>
-                    <span class="text-[9px] bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full font-bold">ALL-TIME DATASET</span>
+            <!-- Main Chart -->
+            <div class="lg:col-span-3 card p-6 rounded-[2.5rem]">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="company-name-display" class="text-xl font-bold text-blue-400">---</h2>
+                    <span class="text-[9px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full font-bold">HOURLY RESOLUTION</span>
                 </div>
-                <div class="chart-container">
-                    <canvas id="fullChart"></canvas>
+                <div class="min-h-[400px] relative">
+                    <canvas id="mainChart"></canvas>
+                    <!-- Loading Skeleton for Chart -->
+                    <div id="chart-loader" class="absolute inset-0 bg-slate-800/20 rounded-2xl flex items-center justify-center">
+                        <div class="w-12 h-12 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let fullChart = null;
+        let myChart = null;
 
         async function loadData(symbol) {
+            // Show loaders
+            document.getElementById('chart-loader').style.display = 'flex';
+            document.getElementById('signal-text').innerText = '...';
+
             try {
+                // Fetch data from the `data` folder
                 const res = await fetch(`data/${symbol}_data.json?v=${Date.now()}`);
+                if (!res.ok) throw new Error("Data file not ready");
+                
                 const data = await res.json();
                 updateUI(data);
             } catch (e) {
-                alert("קובץ נתונים לא נמצא. וודא שה-Action בגיטהאב רץ בהצלחה.");
+                document.getElementById('signal-text').innerText = "ERROR";
+                document.getElementById('signal-desc').innerText = "קובץ הנתונים עדיין לא נוצר בשרת. המתן לריצת ה-Action בגיטהאב.";
+                console.error(e);
+            } finally {
+                document.getElementById('chart-loader').style.display = 'none';
             }
         }
 
         function updateUI(data) {
-            const m = data.metadata;
-            const h = data.history;
+            const meta = data.metadata;
+            const history = data.history;
+            
+            // Text Updates
+            document.getElementById('company-name-display').innerText = meta.name;
+            document.getElementById('price').innerText = `$${meta.current_price.toFixed(2)}`;
+            document.getElementById('rsi-val').innerText = meta.rsi.toFixed(2);
+            document.getElementById('update-time').innerText = "Last Sync: " + meta.last_updated;
 
-            document.getElementById('comp-name').innerText = m.name;
-            document.getElementById('price').innerText = `$${m.current_price.toLocaleString()}`;
-            document.getElementById('rsi-val').innerText = m.rsi.toFixed(2);
-            document.getElementById('first-date').innerText = m.first_trade_date;
-
-            // Signal Logic
+            // Decision Engine (Hourly RSI)
             const sig = document.getElementById('signal-text');
             const desc = document.getElementById('signal-desc');
-            if(m.rsi < 35) {
-                sig.innerText = "BUY"; sig.className = "text-6xl font-black mb-2 text-emerald-500 italic";
-                desc.innerText = "המניה בשפל היסטורי ביחס לתקופה האחרונה.";
-            } else if(m.rsi > 70) {
-                sig.innerText = "SELL"; sig.className = "text-6xl font-black mb-2 text-rose-500 italic";
-                desc.innerText = "המניה בשיא כוחה, ייתכן תיקון טכני.";
+            const card = document.getElementById('signal-card');
+
+            if(meta.rsi <= 35) {
+                sig.innerText = "BUY"; sig.className = "text-6xl font-black mb-4 text-emerald-500 italic";
+                desc.innerText = "מכירת יתר תוך-יומית. פוטנציאל לתיקון עולה.";
+                card.style.borderColor = "#10b981";
+            } else if(meta.rsi >= 70) {
+                sig.innerText = "SELL"; sig.className = "text-6xl font-black mb-4 text-rose-500 italic";
+                desc.innerText = "קניית יתר תוך-יומית. סיכון גבוה למימוש רווחים.";
+                card.style.borderColor = "#ef4444";
             } else {
-                sig.innerText = "HOLD"; sig.className = "text-6xl font-black mb-2 text-slate-500 italic";
-                desc.innerText = "המניה שומרת על יציבות בתוך המגמה.";
+                sig.innerText = "HOLD"; sig.className = "text-6xl font-black mb-4 text-slate-500 italic";
+                desc.innerText = "המניה בטווח יציב. אין איתות חזק ברמה השעתית.";
+                card.style.borderColor = "#2d2d33";
             }
 
-            renderChart(h, m.symbol);
+            renderChart(history, meta.symbol);
         }
 
         function renderChart(history, symbol) {
-            const ctx = document.getElementById('fullChart').getContext('2d');
-            if(fullChart) fullChart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            if(myChart) myChart.destroy();
+            
+            // הצגת רק 200 השעות האחרונות
+            const displayData = history.slice(-200);
 
-            fullChart = new Chart(ctx, {
+            myChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: history.map(row => row.Datetime),
+                    labels: displayData.map(h => h.Datetime),
                     datasets: [
                         {
-                            label: 'Price',
-                            data: history.map(row => row.Close),
-                            borderColor: '#10b981',
-                            borderWidth: 1.5,
-                            pointRadius: 0, // חובה לביצועים בנתוני עתק
+                            label: 'Hourly Price',
+                            data: displayData.map(h => h.Close),
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            pointRadius: 0,
                             fill: true,
-                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
                             tension: 0.1
                         },
                         {
-                            label: 'SMA200',
-                            data: history.map(row => row.SMA200),
+                            label: 'SMA50 (Hourly)',
+                            data: displayData.map(h => h.SMA50),
                             borderColor: '#f59e0b',
                             borderWidth: 1,
                             pointRadius: 0,
@@ -153,9 +179,18 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: { display: false },
+                        x: { 
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                tooltipFormat: 'yyyy-MM-dd HH:mm'
+                            },
+                            display: true, 
+                            ticks: { maxTicksLimit: 8, color: '#444', font: { size: 9 } },
+                            grid: { display: false }
+                        },
                         y: { 
-                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
                             ticks: { color: '#64748b', font: { size: 10 } }
                         }
                     },
@@ -167,6 +202,7 @@
             });
         }
 
+        // טעינה ראשונית
         window.onload = () => loadData('nvda');
     </script>
 </body>
