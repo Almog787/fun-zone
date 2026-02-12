@@ -2,172 +2,105 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>NVDA Insider Intelligence</title>
+    <title>NVDA Strategic Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;400;700;800&display=swap');
-        body { font-family: 'Assistant', sans-serif; background-color: #060606; color: #fff; }
-        .nvda-green { color: #76b900; }
-        .bg-nvda { background-color: #76b900; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        body { font-family: 'Assistant', sans-serif; background-color: #0a0a0c; color: #e2e8f0; }
+        .card { background: rgba(23, 23, 26, 0.7); border: 1px solid #2d2d33; backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="p-4 md:p-8">
-
-    <div class="max-w-6xl mx-auto">
+<body class="p-4">
+    <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-black italic tracking-tighter">NVDA <span class="nvda-green uppercase">Intelligence</span></h1>
-                <p class="text-xs text-slate-500 uppercase">מערכת תמיכה בהחלטות מסחר בזמן אמת</p>
-            </div>
-            <button onclick="toggleSettings()" class="bg-slate-800 p-3 rounded-full hover:bg-slate-700 transition">
-                <i class="fas fa-cog"></i>
-            </button>
-        </div>
-
-        <!-- Settings Modal -->
-        <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <div class="glass p-8 rounded-[2rem] w-full max-w-md">
-                <h2 class="text-xl font-bold mb-4">הגדרות אסטרטגיה</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">RSI למכירה (מעל)</label>
-                        <input type="number" id="rsi-sell" value="70" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-xl">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">RSI לקניה (מתחת)</label>
-                        <input type="number" id="rsi-buy" value="30" class="w-full bg-slate-900 border border-slate-700 p-2 rounded-xl">
-                    </div>
-                    <button onclick="saveSettings()" class="w-full bg-nvda py-3 rounded-xl font-bold text-black">שמור ועדכן</button>
+        <div class="flex justify-between items-center mb-10 bg-[#111] p-6 rounded-3xl border border-[#222]">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-[#76b900] rounded-xl flex items-center justify-center text-black">
+                    <i class="fas fa-microchip text-2xl"></i>
                 </div>
+                <h1 class="text-2xl font-black uppercase tracking-tighter">NVDA <span class="text-[#76b900]">Intelligence</span></h1>
             </div>
+            <div id="last-update" class="text-[10px] text-slate-500 font-mono">טוען...</div>
         </div>
 
-        <!-- Main Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Decision Card -->
-            <div class="lg:col-span-1 glass p-8 rounded-[2.5rem] border-t-4 border-t-[#76b900] text-center">
-                <div class="text-xs font-bold text-slate-500 uppercase mb-2">המלצת מערכת</div>
-                <div id="signal-text" class="text-5xl font-black mb-4 tracking-tighter uppercase">---</div>
-                <div id="signal-desc" class="text-sm text-slate-400">מנתח נתונים...</div>
-                
-                <div class="mt-8 pt-8 border-t border-white/5 space-y-4">
-                    <div class="flex justify-between"><span class="text-slate-500">מחיר נוכחי</span><span id="price" class="font-bold">---</span></div>
-                    <div class="flex justify-between"><span class="text-slate-500">מדד RSI</span><span id="rsi-val" class="font-bold">---</span></div>
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Recommendation -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <div class="card p-8 rounded-[2.5rem] text-center border-t-4 border-[#76b900]">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest">מנוע החלטות</div>
+                    <div id="signal-text" class="text-6xl font-black mb-4 italic tracking-tighter uppercase">---</div>
+                    <div id="signal-desc" class="text-xs text-slate-400">מנתח נתונים היסטוריים...</div>
+                </div>
+                <div class="card p-6 rounded-3xl">
+                    <div class="flex justify-between mb-4"><span>מחיר נוכחי:</span><b id="price">---</b></div>
+                    <div id="rsi-display" class="flex justify-between"><span>מדד RSI:</span><b id="rsi-val">---</b></div>
                 </div>
             </div>
 
             <!-- Chart -->
-            <div class="lg:col-span-2 glass p-6 rounded-[2.5rem]">
-                <h3 class="text-sm font-bold mb-4 uppercase opacity-50">מגמת מחיר (30 ימים אחרונים)</h3>
-                <canvas id="nvdaChart" height="200"></canvas>
+            <div class="lg:col-span-3 card p-6 rounded-[2.5rem]">
+                <canvas id="mainChart" height="140"></canvas>
             </div>
-
-            <!-- Fundamental Intel -->
-            <div class="glass p-6 rounded-[2.5rem]">
-                <h3 class="text-sm font-bold mb-4 uppercase nvda-green">נתוני פונדמנטל</h3>
-                <div id="fundamental-data" class="space-y-3 text-sm">
-                    <!-- Data here -->
-                </div>
-            </div>
-
-            <!-- News Feed -->
-            <div class="lg:col-span-2 glass p-6 rounded-[2.5rem]">
-                <h3 class="text-sm font-bold mb-4 uppercase opacity-50">חדשות משפיעות</h3>
-                <div id="news-feed" class="space-y-4">
-                    <!-- News here -->
-                </div>
-            </div>
-
         </div>
     </div>
 
     <script>
-        let config = {
-            rsiBuy: localStorage.getItem('rsiBuy') || 30,
-            rsiSell: localStorage.getItem('rsiSell') || 70
-        };
-
-        async function loadNVDAData() {
+        async function loadData() {
             try {
-                const res = await fetch('nvda_intel.json?v=' + Date.now());
+                // משיכת הקובץ המתוקן
+                const res = await fetch('nvda_full_history.json?v=' + Date.now());
                 const data = await res.json();
-                renderUI(data);
+                
+                const latest = data.metadata;
+                const history = data.history;
+
+                // עדכון UI
+                document.getElementById('price').innerText = `$${latest.current_price.toFixed(2)}`;
+                document.getElementById('rsi-val').innerText = latest.rsi.toFixed(2);
+                document.getElementById('last-update').innerText = "Update: " + latest.last_updated;
+
+                // לוגיקת איתותים
+                const sig = document.getElementById('signal-text');
+                const desc = document.getElementById('signal-desc');
+                if(latest.rsi <= 35) {
+                    sig.innerText = "BUY"; sig.className = "text-6xl font-black mb-4 text-emerald-500 italic";
+                    desc.innerText = "מכירת יתר קיצונית. פוטנציאל היפוך גבוה.";
+                } else if(latest.rsi >= 70) {
+                    sig.innerText = "SELL"; sig.className = "text-6xl font-black mb-4 text-rose-500 italic";
+                    desc.innerText = "קניית יתר. מומלץ לשקול מימוש רווחים.";
+                } else {
+                    sig.innerText = "HOLD"; sig.className = "text-6xl font-black mb-4 text-slate-500 italic";
+                    desc.innerText = "המניה בטווח דשדוש. אין איתות חזק כרגע.";
+                }
+
+                renderChart(history);
             } catch (e) {
-                console.error("Data not found yet. Wait for GitHub Action to run.");
+                document.getElementById('signal-desc').innerText = "ממתין לנתונים הראשוניים מ-GitHub Actions...";
             }
-        }
-
-        function renderUI(data) {
-            document.getElementById('price').innerText = `$${data.price}`;
-            document.getElementById('rsi-val').innerText = data.technical.rsi;
-            
-            // מנוע החלטות
-            const sigEl = document.getElementById('signal-text');
-            const descEl = document.getElementById('signal-desc');
-            
-            if (data.technical.rsi <= config.rsiBuy) {
-                sigEl.innerText = "BUY";
-                sigEl.className = "text-5xl font-black mb-4 tracking-tighter uppercase text-emerald-500";
-                descEl.innerText = "המניה במצב מכירת-יתר (Oversold). פוטנציאל כניסה גבוה.";
-            } else if (data.technical.rsi >= config.rsiSell) {
-                sigEl.innerText = "SELL";
-                sigEl.className = "text-5xl font-black mb-4 tracking-tighter uppercase text-rose-500";
-                descEl.innerText = "המניה במצב קניית-יתר (Overbought). סיכון לתיקון טכני.";
-            } else {
-                sigEl.innerText = "HOLD";
-                sigEl.className = "text-5xl font-black mb-4 tracking-tighter uppercase text-slate-400";
-                descEl.innerText = "המניה נסחרת בטווח הממוצע. אין איתות חזק כרגע.";
-            }
-
-            // Fundamentals
-            document.getElementById('fundamental-data').innerHTML = `
-                <div class="flex justify-between"><span>מכפיל רווח:</span><b>${data.fundamental.pe_ratio}</b></div>
-                <div class="flex justify-between"><span>יעד אנליסטים:</span><b>$${data.fundamental.analyst_target}</b></div>
-                <div class="flex justify-between"><span>המלצת קונצנזוס:</span><b class="nvda-green">${data.fundamental.recommendation}</b></div>
-            `;
-
-            // News
-            document.getElementById('news-feed').innerHTML = data.news.map(n => `
-                <div class="border-b border-white/5 pb-2">
-                    <a href="${n.link}" target="_blank" class="text-sm font-bold hover:text-[#76b900] transition">${n.title}</a>
-                </div>
-            `).join('');
-
-            renderChart(data.history);
         }
 
         function renderChart(history) {
-            const ctx = document.getElementById('nvdaChart').getContext('2d');
+            const ctx = document.getElementById('mainChart').getContext('2d');
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: Array(30).fill(''),
-                    datasets: [{
-                        label: 'Price',
-                        data: history.Close,
-                        borderColor: '#76b900',
-                        fill: false,
-                        tension: 0.4
-                    }]
+                    labels: history.map(h => h.Datetime),
+                    datasets: [
+                        { label: 'Price', data: history.map(h => h.Close), borderColor: '#76b900', borderWidth: 2, pointRadius: 0, fill: false },
+                        { label: 'SMA200', data: history.map(h => h.SMA200), borderColor: '#f59e0b', borderWidth: 1, pointRadius: 0, fill: false }
+                    ]
                 },
-                options: { responsive: true, plugins: { legend: { display: false } } }
+                options: {
+                    responsive: true,
+                    scales: { x: { display: false }, y: { grid: { color: '#222' } } },
+                    plugins: { legend: { display: false } }
+                }
             });
         }
 
-        function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); }
-        
-        function saveSettings() {
-            localStorage.setItem('rsiBuy', document.getElementById('rsi-buy').value);
-            localStorage.setItem('rsiSell', document.getElementById('rsi-sell').value);
-            location.reload();
-        }
-
-        window.onload = loadNVDAData;
+        window.onload = loadData;
     </script>
 </body>
 </html>
