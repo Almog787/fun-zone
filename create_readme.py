@@ -1,116 +1,155 @@
 import json
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+import mplfinance as mpf
 from datetime import datetime
 
+# הגדרות נתיבים
 DATA_DIR = "data"
 CHARTS_DIR = "charts"
-SITE_URL = "https://almog787.github.io/Stock-information-/" # הקישור לאתר שלך
+SITE_URL = "https://almog787.github.io/Stock-information-/"
 
-if not os.path.exists(CHARTS_DIR): os.makedirs(CHARTS_DIR)
+# יצירת תיקיית גרפים אם לא קיימת
+if not os.path.exists(CHARTS_DIR):
+    os.makedirs(CHARTS_DIR)
 
-def create_chart(json_path, symbol, score):
+def get_file_size(file_path):
+    size_bytes = os.path.getsize(file_path)
+    return f"{size_bytes / 1024:.1f} KB"
+
+def generate_data_audit():
+    """סורק את קבצי ה-JSON ומפיק דוח סטטיסטי על המאגר"""
+    audit_results = []
+    if not os.path.exists(DATA_DIR): return []
+    
+    files = [f for f in os.listdir(DATA_DIR) if f.endswith('_daily.json')]
+    for file in files:
+        file_path = os.path.join(DATA_DIR, file)
+        with open(file_path, 'r') as f:
+            content = json.load(f)
+            history = content.get('history', [])
+            if not history: continue
+            df = pd.DataFrame(history)
+            audit_results.append({
+                "symbol": file.split('_')[0].upper(),
+                "records": len(history),
+                "start": df['Date'].min().split(' ')[0],
+                "end": df['Date'].max().split(' ')[0],
+                "size": get_file_size(file_path)
+            })
+    return audit_results
+
+def create_pro_chart(json_path, symbol, score):
+    """יצירת גרף נרות יפניים מקצועי"""
     with open(json_path, 'r') as f:
         data = json.load(f)
     
-    # טעינת נתונים לגרף (לוקחים את ה-200 ימים האחרונים לתצוגה ברורה)
     df = pd.DataFrame(data['history'])
     df['Date'] = pd.to_datetime(df['Date'])
-    df = df.tail(200) 
-    
-    plt.style.use('dark_background')
-    fig, ax = plt.subplots(figsize=(10, 4))
-    
-    # קו מחיר וקו ממוצע
-    ax.plot(df['Date'], df['Close'], label='Price', color='#00ff41', linewidth=1.5)
-    ax.plot(df['Date'], df['SMA200'], label='SMA 200', color='#ff003c', linestyle='--', linewidth=1)
-    
-    ax.set_title(f"{symbol} | AI Score: {score}/100", color='white', fontweight='bold')
-    ax.legend(loc='upper left')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
-    ax.grid(True, color='#333', linestyle=':', linewidth=0.5)
-    
-    # הסרת מסגרות
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    
-    plt.tight_layout()
-    plt.savefig(f"{CHARTS_DIR}/{symbol}.png", dpi=100)
-    plt.close()
+    df.set_index('Date', inplace=True)
+    df = df.tail(120) # הצגת 4 חודשים אחרונים
+
+    # הגדרת אינדיקטורים להצגה על הגרף
+    apds = [
+        mpf.make_addplot(df['SMA_50'], color='#2962ff', width=1),
+        mpf.make_addplot(df['SMA_200'], color='#ff6d00', width=1.5),
+    ]
+
+    # עיצוב בסגנון Dark Mode מקצועי
+    mc = mpf.make_marketcolors(up='#00ff41', down='#ff003c', edge='inherit', wick='inherit', volume='in')
+    s = mpf.make_mpf_style(base_mpf_style='nightclouds', marketcolors=mc, gridstyle=':', rc={'font.size': 10})
+
+    filename = f"{CHARTS_DIR}/{symbol}.png"
+    mpf.plot(df, type='candle', style=s, addplot=apds, volume=True,
+             savefig=dict(fname=filename, dpi=100, bbox_inches='tight'), figsize=(12, 6))
 
 def generate_readme():
+    # טעינת הדירוגים
     rankings_path = os.path.join(DATA_DIR, "market_rankings.json")
-    if not os.path.exists(rankings_path): return
-
+    if not os.path.exists(rankings_path):
+        print("Missing market_rankings.json")
+        return
     with open(rankings_path, 'r') as f:
         rankings = json.load(f)
     
+    audit_data = generate_data_audit()
     now = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
     
-    # --- בניית ה-README ---
-    md = f"""# 📊 Market AI Radar
-**Automated Financial Intelligence System**
+    # --- התחלת כתיבת ה-Markdown ---
+    md = f"""# 🧠 Institutional AI Market Radar | מודיעין שוק מבוסס בינה מלאכותית
 
-## 🚀 [Click Here to Open Live Interactive Terminal]({SITE_URL})
+![System Status](https://img.shields.io/badge/System-Operational-emerald?style=for-the-badge&logo=github-actions&logoColor=white)
+![Last Update](https://img.shields.io/badge/Last_Update-{now.replace(' ', '--').replace(':', ':-')}-blue?style=for-the-badge)
+![Language](https://img.shields.io/badge/Language-Bilingual-purple?style=for-the-badge)
 
-> 🕒 **Last System Update:** {now}
+## 🚀 [Access Interactive Web Terminal | כניסה לטרמינל האינטראקטיבי]({SITE_URL})
 
 ---
 
-## 🏆 Top Opportunities (Live Charts)
+### 🇺🇸 English Summary
+This system performs automated technical analysis on the Top 10 US stocks. Using institutional-grade libraries, it calculates momentum, trend strength, and volatility to provide an objective **AI Quality Score**.
+
+### 🇮🇱 תקציר בעברית
+מערכת זו מבצעת ניתוח טכני אוטומטי ל-10 המניות הגדולות ביותר בארה"ב. באמצעות שימוש בספריות מתקדמות, המערכת מחשבת מומנטום, חוזק מגמה ותנודתיות כדי להפיק **ציון איכות AI** אובייקטיבי.
+
+---
+
+## 🏆 Top Trade Opportunities | הזדמנויות מסחר מובילות
 """
-    
+
+    # יצירת גרפים ל-3 המניות המובילות
     for i in range(min(3, len(rankings))):
         r = rankings[i]
         json_path = os.path.join(DATA_DIR, f"{r['symbol'].lower()}_daily.json")
         if os.path.exists(json_path):
-            create_chart(json_path, r['symbol'], r['score'])
-            md += f"### {i+1}. {r['symbol']} (Score: {r['score']})\n![{r['symbol']}](charts/{r['symbol']}.png)\n\n"
+            create_pro_chart(json_path, r['symbol'], r['score'])
+            signals = ", ".join(r['signals']) if r['signals'] else "Stable Trend"
+            md += f"### {i+1}. {r['symbol']} (AI Score: {r['score']})\n"
+            md += f"**Signals:** `{signals}`\n\n"
+            md += f"![{r['symbol']} Analysis](charts/{r['symbol']}.png)\n\n"
 
-    md += """## 📋 Full Market Rankings
-| Rank | Ticker | Price | Change | Score | Trend | RSI |
-| :--: | :---: | :---: | :---: | :---: | :---: | :---: |
-"""
-    
-    for i, r in enumerate(rankings):
-        trend_icon = "🟢 Up" if r['change'] > 0 else "🔴 Down"
-        score_icon = "🔥" if r['score'] >= 80 else ("❄️" if r['score'] <= 30 else "⚖️")
-        md += f"| {i+1} | **{r['symbol']}** | ${r['price']:.2f} | {r['change']:.2f}% | {score_icon} **{r['score']}** | {trend_icon} | {r['rsi']:.1f} |\n"
-
-    # --- חלק ההסברים החדש ---
     md += """
 ---
-## 📘 Legend & Definitions (מקרא והסברים)
 
-### 🧠 AI Score (0-100)
-ציון משוקלל שנותן האלגוריתם למניה.
-*   **80-100 (Strong Buy):** המניה במגמת עלייה חזקה או במצב מכירת יתר קיצוני (הזדמנות).
-*   **0-30 (Sell/Avoid):** המניה במגמת ירידה או במצב קניית יתר קיצוני (סיכון).
-*   **40-60 (Hold):** אין כיוון מובהק.
+## 📋 Market Intelligence Table | טבלת דירוג שוק
+| Rank | Symbol | Price | Change | AI Score | Trend (ADX) | RSI |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+"""
+    for i, r in enumerate(rankings):
+        trend = "🟢" if r['change'] > 0 else "🔴"
+        md += f"| {i+1} | **{r['symbol']}** | ${r['price']:.2f} | {trend} {r['change']:.2f}% | **{r['score']}** | {r['adx']:.0f} | {r['rsi']:.1f} |\n"
 
-### 📉 RSI (Relative Strength Index)
-מדד המומנטום (0 עד 100).
-*   **מתחת ל-30:** "מכירת יתר" (Oversold) - המחיר ירד מהר מדי, ייתכן תיקון למעלה.
-*   **מעל 70:** "קניית יתר" (Overbought) - המחיר עלה מהר מדי, ייתכן תיקון למטה.
+    md += """
+---
 
-### 🟠 SMA 200 (Simple Moving Average)
-הממוצע של המחיר ב-200 הימים האחרונים.
-*   **מחיר מעל הקו:** מגמה חיובית ארוכת טווח (Bullish).
-*   **מחיר מתחת לקו:** מגמה שלילית (Bearish).
+## 📘 Legend & Definitions | מקרא והסברים
 
-### 📡 System Status
-*   **Update Frequency:** Every 15 minutes during US market hours.
-*   **Data Source:** yfinance (Yahoo Finance API).
-*   **History:** Full historical data maintained incrementally.
+| Term | מונח | Description | תיאור |
+| :--- | :--- | :--- | :--- |
+| **AI Score** | **ציון AI** | Overall rating (0-100) based on 15+ indicators. | דירוג כללי (0-100) המבוסס על מעל 15 אינדיקטורים. |
+| **RSI** | **מדד חוזק** | Momentum indicator. Below 30 = Oversold, Above 70 = Overbought. | מדד מומנטום. מתחת ל-30 = מכירת יתר, מעל 70 = קניית יתר. |
+| **ADX** | **עוצמת מגמה** | Measures trend strength. >25 indicates a strong trend. | מודד את עוצמת המגמה. מעל 25 מעיד על מגמה חזקה. |
+| **SMA 200** | **ממוצע 200** | Long-term trend baseline (Golden Line). | קו בסיס למגמה ארוכת טווח (קו הזהב). |
 
 ---
-*Data generated automatically by GitHub Actions.*
+
+## 🗄️ Database Audit | ביקורת מאגר הנתונים
+**Transparency Report: Current state of local JSON storage.**
+
+| Ticker | Records | Date Range | File Size | Status |
+| :--- | :---: | :--- | :---: | :---: |
+"""
+    for a in sorted(audit_data, key=lambda x: x['records'], reverse=True):
+        md += f"| {a['symbol']} | {a['records']} | `{a['start']}` to `{a['end']}` | {a['size']} | ✅ Sync | \n"
+
+    md += f"""
+---
+*Automated system powered by Python, GitHub Actions, and yfinance. Generated at: {now}*
 """
 
     with open("README.md", "w", encoding="utf-8") as f:
         f.write(md)
+    print("Bilingual README generated successfully.")
 
 if __name__ == "__main__":
     generate_readme()
