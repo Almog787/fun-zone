@@ -8,6 +8,7 @@ from datetime import datetime
 
 TICKERS = ["NVDA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA", "BRK-B", "LLY", "AVGO"]
 DATA_DIR = "data"
+SITE_URL = "https://almog787.github.io/Stock-information-/" # הקישור לאתר שלך
 
 if not os.path.exists(DATA_DIR): os.makedirs(DATA_DIR)
 
@@ -69,31 +70,34 @@ def save_json(data, filename):
     with open(os.path.join(DATA_DIR, filename), 'w') as f:
         json.dump(data, f, cls=PandasEncoder, indent=0)
 
-# --- פונקציה חדשה ליצירת README ---
+# --- פונקציה מעודכנת ליצירת README ---
 def generate_readme(rankings):
     now = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
     
     md = f"""# 📊 Market AI Radar
 **Automated Financial Intelligence System**
-\n> 🔄 **Last Updated:** {now}
-\n## 🏆 Top Opportunities (Live Analysis)
+
+## 🚀 [Click Here to Open Live Dashboard]({SITE_URL})
+
+> 🔄 **Last Updated:** {now}
+
+## 🏆 Top Opportunities (Live Analysis)
 | Rank | Ticker | Price | Change | AI Score | Signal |
 | :--: | :----: | :---: | :----: | :------: | :----- |
 """
     
     for i, r in enumerate(rankings):
-        # עיצוב אימוג'ים לפי נתונים
         trend = "🟢" if r['change'] > 0 else "🔴"
         score_icon = "🚀" if r['score'] >= 80 else ("⚠️" if r['score'] <= 30 else "⚖️")
         signals_str = ", ".join(r['signals']) if r['signals'] else "Stable"
         
         md += f"| {i+1} | **{r['symbol']}** | ${r['price']:.2f} | {trend} {r['change']:.2f}% | {score_icon} **{r['score']}** | {signals_str} |\n"
 
-    md += "\n\n---\n*This data is generated automatically by GitHub Actions using yfinance & Python analysis.*"
+    md += f"\n\n---\n*Data generated automatically by GitHub Actions | [View Live Site]({SITE_URL})*"
     
     with open("README.md", "w", encoding="utf-8") as f:
         f.write(md)
-    print("README.md updated successfully.")
+    print("README.md updated with live link.")
 
 def process_market():
     rankings = []
@@ -136,7 +140,6 @@ def process_market():
     with open(os.path.join(DATA_DIR, "market_rankings.json"), 'w') as f:
         json.dump(rankings, f, cls=PandasEncoder, indent=2)
         
-    # קריאה לפונקציה שמעדכנת את ה-README
     generate_readme(rankings)
 
 if __name__ == "__main__":
