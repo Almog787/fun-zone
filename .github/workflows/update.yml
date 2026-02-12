@@ -1,13 +1,20 @@
 name: Stable Market Intelligence
+
 on:
   schedule:
-    - cron: '0 0 * * *'
+    # רץ כל 15 דקות (*/15)
+    # בין השעות 13:00 ל-21:00 (שעות המסחר בארה"ב + מרווח ביטחון)
+    # בימים שני עד שישי (1-5)
+    - cron: '*/15 13-21 * * 1-5'
+  
   workflow_dispatch:
     inputs:
       run_collect:
+        description: 'Run Data Collection (Step 1)'
         type: boolean
         default: true
       run_readme:
+        description: 'Update README & Charts (Step 2)'
         type: boolean
         default: true
 
@@ -18,24 +25,30 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
+      
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+          
       - name: Install Libs
         run: pip install yfinance pandas numpy matplotlib
+        
       - name: Step 1 - Data Collection
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_collect == 'true' }}
         run: python collect_data.py
+        
       - name: Step 2 - Wait
         run: sleep 10
+        
       - name: Step 3 - Generate README
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_readme == 'true' }}
         run: python create_readme.py
+        
       - name: Commit Results
         run: |
           git config --global user.name 'Market-Bot'
           git config --global user.email 'bot@market.ai'
           git add data/*.json charts/*.png README.md || true
-          git commit -m "Stable Update [Skip CI]" || echo "No changes"
+          git commit -m "Intraday Update [Skip CI]" || echo "No changes"
           git push
