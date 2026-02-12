@@ -1,8 +1,20 @@
-name: Market Intelligence Update
+name: Market Intelligence System
 on:
   schedule:
     - cron: '*/15 13-21 * * 1-5'
   workflow_dispatch:
+    inputs:
+      run_collect:
+        description: 'Step 1: Collect Data'
+        type: boolean
+        default: true
+      run_readme:
+        description: 'Step 2: Update README'
+        type: boolean
+        default: true
+      delay:
+        description: 'Delay (sec)'
+        default: '30'
 
 jobs:
   build:
@@ -11,29 +23,24 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          
       - name: Install Libs
         run: pip install yfinance pandas numpy matplotlib mplfinance
-        
-      - name: Step 1 - Data Collection
+      - name: Step 1
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.run_collect == 'true' }}
         run: python collect_data.py
-        
-      - name: Step 2 - Wait
-        run: sleep 15
-        
-      - name: Step 3 - Generate Visuals
+      - name: Wait
+        run: sleep ${{ github.event.inputs.delay || 30 }}
+      - name: Step 2
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.run_readme == 'true' }}
         run: python create_readme.py
-        
-      - name: Commit and Push Results
+      - name: Push
         run: |
           git config --global user.name 'Market-Bot'
           git config --global user.email 'bot@market.ai'
-          # git add -A מוודא שכל קובץ חדש בתיקיית charts יתווסף
           git add -A
-          git commit -m "Update charts and README [Skip CI]" || echo "No changes"
+          git commit -m "Automated Data & README Sync [Skip CI]" || echo "No changes"
           git push
