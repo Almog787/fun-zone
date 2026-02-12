@@ -1,6 +1,5 @@
 import yfinance as yf
 import pandas as pd
-import pandas_ta as ta  # הספרייה הכבדה לניתוח טכני
 import json
 import os
 import time
@@ -9,120 +8,71 @@ from datetime import datetime
 
 TICKERS = ["NVDA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA", "BRK-B", "LLY", "AVGO"]
 DATA_DIR = "data"
-
 if not os.path.exists(DATA_DIR): os.makedirs(DATA_DIR)
 
 class PandasEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, pd.Timestamp): return obj.strftime('%Y-%m-%d %H:%M')
-        if isinstance(obj, (np.int64, np.int32)): return int(obj)
-        if isinstance(obj, (np.float64, np.float32)): return round(float(obj), 2)
+        if isinstance(obj, (np.int64, np.int32, np.integer)): return int(obj)
+        if isinstance(obj, (np.float64, np.float32, np.floating)): return round(float(obj), 2)
         return super(PandasEncoder, self).default(obj)
 
-def advanced_analysis(df):
-    # שימוש באסטרטגיית pandas-ta
-    # 1. מגמה: EMA (אקספוננציאלי - מגיב מהר יותר)
-    df.ta.ema(length=50, append=True)
-    df.ta.ema(length=200, append=True)
-    
-    # 2. מומנטום: MACD (Moving Average Convergence Divergence)
-    df.ta.macd(append=True) # יוצר עמודות MACD_12_26_9, MACDh, MACDs
-    
-    # 3. תנודתיות: Bollinger Bands
-    df.ta.bbands(length=20, std=2, append=True)
-    
-    # 4. כוח מגמה: ADX (Average Directional Index)
-    df.ta.adx(length=14, append=True)
-    
-    # 5. מתנד: RSI
-    df.ta.rsi(length=14, append=True)
-
+def calculate_manual_indicators(df):
+    # RSI Manual Calculation
+    delta = df['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / (loss + 1e-9)
+    df['RSI'] = 100 - (100 / (1 + rs))
+    # SMA
+    df['SMA50'] = df['Close'].rolling(window=50).mean()
+    df['SMA200'] = df['Close'].rolling(window=200).mean()
     return df.fillna(0)
 
 def calculate_score(row):
     score = 50
-    reasons = []
-
-    # ניתוח EMA (מגמה ראשית)
-    if row['EMA_50'] > row['EMA_200']:
-        score += 15
-        if row['Close'] > row['EMA_50']:
-            score += 10
-            reasons.append("Bullish Trend")
-    else:
-        score -= 15
-        if row['Close'] < row['EMA_50']:
-            score -= 10
-            reasons.append("Bearish Trend")
-
-    # ניתוח MACD (מומנטום)
-    # MACD_12_26_9 הוא קו ה-MACD, MACDs_12_26_9 הוא ה-Signal
-    if row['MACD_12_26_9'] > row['MACDs_12_26_9']:
-        score += 10
-        reasons.append("MACD Crossover (Pos)")
-    
-    # ניתוח ADX (עוצמת מגמה)
-    if row['ADX_14'] > 25:
-        score += 5 # מגמה חזקה
-        
-    # ניתוח RSI
-    if row['RSI_14'] < 30:
+    signals = []
+    if row['Close'] > row['SMA200']:
         score += 20
-        reasons.append("Oversold (RSI)")
-    elif row['RSI_14'] > 70:
+        signals.append("📈 Uptrend")
+    else:
         score -= 20
-        reasons.append("Overbought (RSI)")
-
-    # בולינגר (פריצה)
-    if row['Close'] < row['BBL_20_2.0']:
+        signals.append("📉 Downtrend")
+    if row['RSI'] < 30:
         score += 15
-        reasons.append("Price < Lower BB (Discount)")
-
-    return max(0, min(100, score)), reasons
+        signals.append("🟢 Oversold")
+    elif row['RSI'] > 70:
+        score -= 15
+        signals.append("🔴 Overbought")
+    return max(0, min(100, score)), signals
 
 def process_market():
     rankings = []
-    
     for symbol in TICKERS:
-        print(f"Deep analyzing {symbol}...")
+        print(f"Processing {symbol}...")
         try:
             stock = yf.Ticker(symbol)
             df = stock.history(period="2y", interval="1d")
-            
             if df.empty: continue
-
-            # הפעלת המנוע הכבד
-            df = advanced_analysis(df)
+            df = calculate_manual_indicators(df)
+            df.reset_index(inplace=True)
             
             latest = df.iloc[-1]
             score, signals = calculate_score(latest)
             
-            # הכנת נתונים (שומרים רק את מה שצריך לגרף ולממשק)
-            # אנו שומרים את השמות המקוריים של yfinance ומוסיפים את המחושבים
-            graph_data = df.tail(500).reset_index().to_dict(orient='records')
-
-            info = stock.info
             meta = {
-                "symbol": symbol,
-                "name": info.get("longName", symbol),
-                "price": latest['Close'],
-                "change": ((latest['Close'] - df.iloc[-2]['Close']) / df.iloc[-2]['Close']) * 100,
-                "score": score,
-                "signals": signals,
-                "rsi": latest['RSI_14'],
-                "macd": latest['MACD_12_26_9'], # ערך ה-MACD
-                "adx": latest['ADX_14'],
+                "symbol": symbol, "name": stock.info.get("longName", symbol),
+                "price": latest['Close'], "change": ((latest['Close'] - df.iloc[-2]['Close']) / df.iloc[-2]['Close']) * 100,
+                "score": score, "signals": signals, "rsi": latest['RSI'],
                 "updated": datetime.now().strftime("%Y-%m-%d %H:%M")
             }
-
-            with open(os.path.join(DATA_DIR, f"{symbol}_daily.json"), 'w') as f:
-                json.dump({"meta": meta, "history": graph_data}, f, cls=PandasEncoder)
             
+            history_data = df[['Date', 'Close', 'SMA200', 'SMA50', 'Volume']].tail(1000).to_dict(orient='records')
+            with open(os.path.join(DATA_DIR, f"{symbol.lower()}_daily.json"), 'w') as f:
+                json.dump({"meta": meta, "history": history_data}, f, cls=PandasEncoder, indent=0)
             rankings.append(meta)
             time.sleep(1)
-
-        except Exception as e:
-            print(f"Failed {symbol}: {e}")
+        except Exception as e: print(f"Error {symbol}: {e}")
 
     rankings.sort(key=lambda x: x['score'], reverse=True)
     with open(os.path.join(DATA_DIR, "market_rankings.json"), 'w') as f:
