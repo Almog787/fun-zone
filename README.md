@@ -1,7 +1,9 @@
 # 📊 Market AI Radar
 **Automated Financial Intelligence System**
 
-> 🔄 **Last Updated:** 2026-02-12 08:30 UTC
+## 🚀 [Click Here to Open Live Dashboard](https://almog787.github.io/Stock-information-/)
+
+> 🔄 **Last Updated:** 2026-02-12 08:38 UTC
 
 ## 🏆 Top Opportunities (Live Analysis)
 | Rank | Ticker | Price | Change | AI Score | Signal |
@@ -19,4 +21,4 @@
 
 
 ---
-*This data is generated automatically by GitHub Actions using yfinance & Python analysis.*
+*Data generated automatically by GitHub Actions | [View Live Site](https://almog787.github.io/Stock-information-/)*
