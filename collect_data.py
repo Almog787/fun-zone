@@ -19,76 +19,83 @@ class PandasEncoder(json.JSONEncoder):
 
 def calculate_manual_indicators(df):
     if df.empty: return df
-    # RSI
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / (loss + 1e-9)
     df['RSI'] = 100 - (100 / (1 + rs))
-    # SMA
     df['SMA50'] = df['Close'].rolling(window=50).mean()
     df['SMA200'] = df['Close'].rolling(window=200).mean()
     return df.fillna(0)
+
+def calculate_score(row):
+    score = 50
+    signals = []
+    if row['Close'] > row['SMA200']:
+        score += 20
+        signals.append("📈 Uptrend")
+    else:
+        score -= 20
+        signals.append("📉 Downtrend")
+    if row['RSI'] < 35:
+        score += 15
+        signals.append("🟢 Oversold")
+    elif row['RSI'] > 70:
+        score -= 15
+        signals.append("🔴 Overbought")
+    return max(0, min(100, score)), signals
 
 def process_ticker(symbol):
     file_path = os.path.join(DATA_DIR, f"{symbol.lower()}_daily.json")
     stock = yf.Ticker(symbol)
     
-    # 1. טעינת המאגר הקיים מהדיסק
     existing_df = pd.DataFrame()
     if os.path.exists(file_path):
         try:
             with open(file_path, 'r') as f:
                 old_data = json.load(f)
                 existing_df = pd.DataFrame(old_data['history'])
-                # המרה לתאריך וניטרול אזור זמן (tz_localize(None))
                 existing_df['Date'] = pd.to_datetime(existing_df['Date']).dt.tz_localize(None)
-            print(f"Loaded {len(existing_df)} rows for {symbol}")
-        except Exception as e:
-            print(f"Could not load old data for {symbol}: {e}")
+        except: pass
 
-    # 2. משיכת נתונים חדשים
-    # מורידים חודש אחרון כדי לוודא שאין חורים
-    new_data = stock.history(period="1mo", interval="1d")
+    # אם אין נתונים - מוריד הכל (max), אם יש - מוריד רק חודש אחרון לעדכון
+    period = "max" if existing_df.empty else "1mo"
+    new_data = stock.history(period=period, interval="1d")
     if new_data.empty: return
     
     new_data.reset_index(inplace=True)
-    # ניטרול אזור זמן מהנתונים החדשים כדי שיהיו תואמים לישנים
     new_data['Date'] = pd.to_datetime(new_data['Date']).dt.tz_localize(None)
 
-    # 3. מיזוג (Merging)
-    # concat מחבר, drop_duplicates מנקה כפילויות תאריכים
     combined_df = pd.concat([existing_df, new_data]).drop_duplicates(subset=['Date'], keep='last')
     combined_df = combined_df.sort_values('Date')
-
-    # 4. חישוב אינדיקטורים מחדש
     combined_df = calculate_manual_indicators(combined_df)
 
-    # 5. הכנת פלט
     latest = combined_df.iloc[-1]
+    score, signals = calculate_score(latest)
+    
     meta = {
-        "symbol": symbol,
-        "name": stock.info.get("longName", symbol),
-        "price": latest['Close'],
-        "score": 50, 
-        "rsi": latest['RSI'],
+        "symbol": symbol, "name": stock.info.get("longName", symbol),
+        "price": latest['Close'], "change": ((latest['Close'] - combined_df.iloc[-2]['Close']) / combined_df.iloc[-2]['Close']) * 100,
+        "score": score, "signals": signals, "rsi": latest['RSI'],
         "updated": datetime.now().strftime("%Y-%m-%d %H:%M")
     }
     
-    # המרה חזרה למחרוזת לצורך שמירה ב-JSON
     history_to_save = combined_df[['Date', 'Close', 'SMA200', 'SMA50', 'Volume']].copy()
     history_to_save['Date'] = history_to_save['Date'].dt.strftime('%Y-%m-%d %H:%M')
     
-    history_data = history_to_save.to_dict(orient='records')
-    
     with open(file_path, 'w') as f:
-        json.dump({"meta": meta, "history": history_data}, f, cls=PandasEncoder, indent=0)
-    print(f"Successfully updated {symbol}")
+        json.dump({"meta": meta, "history": history_to_save.to_dict(orient='records')}, f, cls=PandasEncoder, indent=0)
+    return meta
 
 if __name__ == "__main__":
+    rankings = []
     for ticker in TICKERS:
         try:
-            process_ticker(ticker)
-        except Exception as e:
-            print(f"Error on {ticker}: {e}")
+            m = process_ticker(ticker)
+            if m: rankings.append(m)
+        except Exception as e: print(f"Error {ticker}: {e}")
         time.sleep(1)
+
+    rankings.sort(key=lambda x: x['score'], reverse=True)
+    with open(os.path.join(DATA_DIR, "market_rankings.json"), 'w') as f:
+        json.dump(rankings, f, cls=PandasEncoder, indent=2)
