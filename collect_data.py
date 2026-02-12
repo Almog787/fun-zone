@@ -18,6 +18,7 @@ class PandasEncoder(json.JSONEncoder):
         return super(PandasEncoder, self).default(obj)
 
 def calculate_manual_indicators(df):
+    if df.empty: return df
     # RSI
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
@@ -33,29 +34,34 @@ def process_ticker(symbol):
     file_path = os.path.join(DATA_DIR, f"{symbol.lower()}_daily.json")
     stock = yf.Ticker(symbol)
     
-    # 1. טעינת המאגר הקיים מהדיסק (אם קיים)
+    # 1. טעינת המאגר הקיים מהדיסק
     existing_df = pd.DataFrame()
     if os.path.exists(file_path):
         try:
             with open(file_path, 'r') as f:
                 old_data = json.load(f)
                 existing_df = pd.DataFrame(old_data['history'])
-                existing_df['Date'] = pd.to_datetime(existing_df['Date'])
-        except:
-            print(f"Could not load old data for {symbol}")
+                # המרה לתאריך וניטרול אזור זמן (tz_localize(None))
+                existing_df['Date'] = pd.to_datetime(existing_df['Date']).dt.tz_localize(None)
+            print(f"Loaded {len(existing_df)} rows for {symbol}")
+        except Exception as e:
+            print(f"Could not load old data for {symbol}: {e}")
 
-    # 2. משיכת נתונים חדשים (רק החודש האחרון כדי לעדכן)
+    # 2. משיכת נתונים חדשים
+    # מורידים חודש אחרון כדי לוודא שאין חורים
     new_data = stock.history(period="1mo", interval="1d")
     if new_data.empty: return
+    
     new_data.reset_index(inplace=True)
-    new_data['Date'] = pd.to_datetime(new_data['Date'])
+    # ניטרול אזור זמן מהנתונים החדשים כדי שיהיו תואמים לישנים
+    new_data['Date'] = pd.to_datetime(new_data['Date']).dt.tz_localize(None)
 
     # 3. מיזוג (Merging)
-    # אנחנו מחברים את הטבלאות ומוחקים כפילויות לפי תאריך
+    # concat מחבר, drop_duplicates מנקה כפילויות תאריכים
     combined_df = pd.concat([existing_df, new_data]).drop_duplicates(subset=['Date'], keep='last')
     combined_df = combined_df.sort_values('Date')
 
-    # 4. חישוב אינדיקטורים מחדש על כל המאגר המאוחד (חובה לדיוק)
+    # 4. חישוב אינדיקטורים מחדש
     combined_df = calculate_manual_indicators(combined_df)
 
     # 5. הכנת פלט
@@ -64,18 +70,25 @@ def process_ticker(symbol):
         "symbol": symbol,
         "name": stock.info.get("longName", symbol),
         "price": latest['Close'],
-        "score": 50, # כאן אפשר להוסיף את לוגיקת הציון
+        "score": 50, 
         "rsi": latest['RSI'],
         "updated": datetime.now().strftime("%Y-%m-%d %H:%M")
     }
     
-    # שמירת כל ההיסטוריה המצטברת
-    history_data = combined_df[['Date', 'Close', 'SMA200', 'SMA50', 'Volume']].to_dict(orient='records')
+    # המרה חזרה למחרוזת לצורך שמירה ב-JSON
+    history_to_save = combined_df[['Date', 'Close', 'SMA200', 'SMA50', 'Volume']].copy()
+    history_to_save['Date'] = history_to_save['Date'].dt.strftime('%Y-%m-%d %H:%M')
+    
+    history_data = history_to_save.to_dict(orient='records')
     
     with open(file_path, 'w') as f:
         json.dump({"meta": meta, "history": history_data}, f, cls=PandasEncoder, indent=0)
+    print(f"Successfully updated {symbol}")
 
 if __name__ == "__main__":
     for ticker in TICKERS:
-        process_ticker(ticker)
-        time.sleep(2)
+        try:
+            process_ticker(ticker)
+        except Exception as e:
+            print(f"Error on {ticker}: {e}")
+        time.sleep(1)
