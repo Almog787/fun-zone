@@ -1,124 +1,125 @@
 [
   {
+    "symbol": "GOOGL",
+    "name": "Alphabet Inc.",
+    "price": 311.2200927734375,
+    "change": 0.08364462487353448,
+    "score": 85,
+    "signals": [
+      "\ud83d\udcc8 Uptrend",
+      "\ud83d\udfe2 Oversold"
+    ],
+    "rsi": 33.98519576604856,
+    "updated": "2026-02-12 19:07"
+  },
+  {
     "symbol": "NVDA",
     "name": "NVIDIA Corporation",
-    "price": 188.8300018310547,
-    "change": -0.6419369645423644,
+    "price": 189.6300048828125,
+    "change": -0.22099350813003205,
     "score": 70,
     "signals": [
       "\ud83d\udcc8 Uptrend"
     ],
-    "rsi": 51.15400330953313,
-    "updated": "2026-02-12 16:40"
+    "rsi": 51.98140683644268,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "AAPL",
     "name": "Apple Inc.",
-    "price": 266.8399963378906,
-    "change": -3.1433770098400635,
+    "price": 261.44000244140625,
+    "change": -5.103447389689202,
     "score": 70,
     "signals": [
       "\ud83d\udcc8 Uptrend"
     ],
-    "rsi": 68.81130999618588,
-    "updated": "2026-02-12 16:40"
-  },
-  {
-    "symbol": "GOOGL",
-    "name": "Alphabet Inc.",
-    "price": 314.0299987792969,
-    "change": 0.9872676256045786,
-    "score": 70,
-    "signals": [
-      "\ud83d\udcc8 Uptrend"
-    ],
-    "rsi": 37.35906175103476,
-    "updated": "2026-02-12 16:40"
+    "rsi": 62.17431177353526,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "TSLA",
     "name": "Tesla, Inc.",
-    "price": 420.7300109863281,
-    "change": -1.7605665166286137,
+    "price": 416.1300048828125,
+    "change": -2.834656745110343,
     "score": 70,
     "signals": [
       "\ud83d\udcc8 Uptrend"
     ],
-    "rsi": 38.15338626820943,
-    "updated": "2026-02-12 16:40"
+    "rsi": 36.73995440995789,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "BRK-B",
     "name": "Berkshire Hathaway Inc.",
-    "price": 505.875,
-    "change": 1.170955384779234,
+    "price": 503.9599914550781,
+    "change": 0.7879689868355482,
     "score": 70,
     "signals": [
       "\ud83d\udcc8 Uptrend"
     ],
-    "rsi": 69.94586971900142,
-    "updated": "2026-02-12 16:40"
+    "rsi": 69.06758663407754,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "LLY",
     "name": "Eli Lilly and Company",
-    "price": 1037.4599609375,
-    "change": 2.1916587192086476,
+    "price": 1045.655029296875,
+    "change": 2.998887586340116,
     "score": 70,
     "signals": [
       "\ud83d\udcc8 Uptrend"
     ],
-    "rsi": 46.595081245327314,
-    "updated": "2026-02-12 16:40"
+    "rsi": 47.683279204337666,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "AVGO",
     "name": "Broadcom Inc.",
-    "price": 335.25,
-    "change": -2.1910402473031354,
+    "price": 333.92498779296875,
+    "change": -2.5776116585763686,
     "score": 70,
     "signals": [
       "\ud83d\udcc8 Uptrend"
     ],
-    "rsi": 58.56435308956415,
-    "updated": "2026-02-12 16:40"
+    "rsi": 57.702770003736966,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "MSFT",
     "name": "Microsoft Corporation",
-    "price": 400.1700134277344,
-    "change": -1.0386482034197317,
+    "price": 405.2300109863281,
+    "change": 0.21268043611677717,
     "score": 45,
     "signals": [
       "\ud83d\udcc9 Downtrend",
       "\ud83d\udfe2 Oversold"
     ],
-    "rsi": 26.993563682631816,
-    "updated": "2026-02-12 16:40"
+    "rsi": 28.255267841214604,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "AMZN",
     "name": "Amazon.com, Inc.",
-    "price": 198.30999755859375,
-    "change": -2.8273246867361213,
+    "price": 199.44000244140625,
+    "change": -2.273617869471409,
     "score": 45,
     "signals": [
       "\ud83d\udcc9 Downtrend",
       "\ud83d\udfe2 Oversold"
     ],
-    "rsi": 16.34535799571654,
-    "updated": "2026-02-12 16:40"
+    "rsi": 16.655471076630718,
+    "updated": "2026-02-12 19:07"
   },
   {
     "symbol": "META",
     "name": "Meta Platforms, Inc.",
-    "price": 650.22998046875,
-    "change": -2.760624789552436,
+    "price": 652.969970703125,
+    "change": -2.350869862101567,
     "score": 30,
     "signals": [
       "\ud83d\udcc9 Downtrend"
     ],
-    "rsi": 47.96971688216434,
-    "updated": "2026-02-12 16:40"
+    "rsi": 48.60366558063086,
+    "updated": "2026-02-12 19:07"
   }
 ]

@@ -1,44 +1,45 @@
-# 📊 Market AI Radar
+# 📊 Institutional Market AI Radar
 
-## 🚀 [Open Live Site](https://almog787.github.io/Stock-information-/)
+![Build Status](https://img.shields.io/badge/System-Operational-emerald?style=for-the-badge&logo=github-actions)
+![Last Update](https://img.shields.io/badge/Updated-2026-02-12--19:08--UTC-blue?style=for-the-badge)
 
-> Last Updated: 2026-02-12 18:39 UTC
+## 🚀 [Access Interactive Web Terminal](https://almog787.github.io/Stock-information-/)
 
-## 🏆 Top Opportunities
-### 1. NVDA (Score: 70)
-![NVDA](charts/NVDA.png)
-
-### 2. AAPL (Score: 70)
-![AAPL](charts/AAPL.png)
-
-### 3. GOOGL (Score: 70)
+## 🏆 Top Trade Opportunities
+### 1. GOOGL (Score: 85)
 ![GOOGL](charts/GOOGL.png)
 
+### 2. NVDA (Score: 70)
+![NVDA](charts/NVDA.png)
 
-## 📋 Full Rankings
+### 3. AAPL (Score: 70)
+![AAPL](charts/AAPL.png)
+
+
+## 📋 Market Rankings Table
 | Rank | Ticker | Price | Change | Score | Signals |
 | :--: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **NVDA** | $188.83 | 🔴 -0.64% | **70** | 📈 Uptrend |
-| 2 | **AAPL** | $266.84 | 🔴 -3.14% | **70** | 📈 Uptrend |
-| 3 | **GOOGL** | $314.03 | 🟢 0.99% | **70** | 📈 Uptrend |
-| 4 | **TSLA** | $420.73 | 🔴 -1.76% | **70** | 📈 Uptrend |
-| 5 | **BRK-B** | $505.88 | 🟢 1.17% | **70** | 📈 Uptrend |
-| 6 | **LLY** | $1037.46 | 🟢 2.19% | **70** | 📈 Uptrend |
-| 7 | **AVGO** | $335.25 | 🔴 -2.19% | **70** | 📈 Uptrend |
-| 8 | **MSFT** | $400.17 | 🔴 -1.04% | **45** | 📉 Downtrend, 🟢 Oversold |
-| 9 | **AMZN** | $198.31 | 🔴 -2.83% | **45** | 📉 Downtrend, 🟢 Oversold |
-| 10 | **META** | $650.23 | 🔴 -2.76% | **30** | 📉 Downtrend |
+| 1 | **GOOGL** | $311.22 | 🟢 0.08% | **85** | 📈 Uptrend, 🟢 Oversold |
+| 2 | **NVDA** | $189.63 | 🔴 -0.22% | **70** | 📈 Uptrend |
+| 3 | **AAPL** | $261.44 | 🔴 -5.10% | **70** | 📈 Uptrend |
+| 4 | **TSLA** | $416.13 | 🔴 -2.83% | **70** | 📈 Uptrend |
+| 5 | **BRK-B** | $503.96 | 🟢 0.79% | **70** | 📈 Uptrend |
+| 6 | **LLY** | $1045.66 | 🟢 3.00% | **70** | 📈 Uptrend |
+| 7 | **AVGO** | $333.92 | 🔴 -2.58% | **70** | 📈 Uptrend |
+| 8 | **MSFT** | $405.23 | 🟢 0.21% | **45** | 📉 Downtrend, 🟢 Oversold |
+| 9 | **AMZN** | $199.44 | 🔴 -2.27% | **45** | 📉 Downtrend, 🟢 Oversold |
+| 10 | **META** | $652.97 | 🔴 -2.35% | **30** | 📉 Downtrend |
 
-## 🗄️ Database Audit
-| Ticker | Records | Time Range |
-| :--- | :---: | :--- |
-| NVDA | 503 | `2024-02-12` to `2026-02-12` |
-| AAPL | 503 | `2024-02-12` to `2026-02-12` |
-| GOOGL | 503 | `2024-02-12` to `2026-02-12` |
-| TSLA | 503 | `2024-02-12` to `2026-02-12` |
-| BRK-B | 503 | `2024-02-12` to `2026-02-12` |
-| LLY | 503 | `2024-02-12` to `2026-02-12` |
-| AVGO | 503 | `2024-02-12` to `2026-02-12` |
-| MSFT | 503 | `2024-02-12` to `2026-02-12` |
-| AMZN | 503 | `2024-02-12` to `2026-02-12` |
-| META | 503 | `2024-02-12` to `2026-02-12` |
+## 🗄️ Big Data Archive Audit
+| Ticker | Total Records | Date Range | Status |
+| :--- | :---: | :--- | :---: |
+| GOOGL | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| NVDA | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| AAPL | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| TSLA | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| BRK-B | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| LLY | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| AVGO | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| MSFT | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| AMZN | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
+| META | 503 rows | `2024-02-12` to `2026-02-12` | ✅ Verified |
