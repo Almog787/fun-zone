@@ -1,21 +1,15 @@
-name: Market Control Center
+name: Pro Market Analysis
 on:
   schedule:
-    - cron: '0 0 * * *' # ריצה אוטומטית יומית מלאה
-  workflow_dispatch: # תפריט בחירה ידני
+    - cron: '0 0 * * *'
+  workflow_dispatch:
     inputs:
       run_collect:
-        description: 'Run Data Collection (Step 1)'
         type: boolean
         default: true
       run_readme:
-        description: 'Update README & Charts (Step 2)'
         type: boolean
         default: true
-      delay:
-        description: 'Wait between steps (seconds)'
-        type: string
-        default: '40'
 
 jobs:
   build:
@@ -24,35 +18,31 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v2
-      
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
-          
-      - name: Install Libs
-        run: pip install yfinance pandas numpy matplotlib
-        
-      # --- שלב 1: איסוף נתונים (ירוץ אם בחרת או אם זו ריצה אוטומטית) ---
-      - name: Step 1 - Data Collection
+      
+      # התקנת הספריות הכבדות
+      - name: Install Advanced Libs
+        run: pip install yfinance pandas numpy pandas_ta mplfinance
+
+      - name: Step 1 - Advanced Analysis
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_collect == 'true' }}
         run: python collect_data.py
         
-      # --- שלב ביניים: המתנה (רק אם שני השלבים רצים) ---
-      - name: Wait for Sync
-        if: ${{ (github.event_name == 'schedule' || (github.event.inputs.run_collect == 'true' && github.event.inputs.run_readme == 'true')) }}
-        run: sleep ${{ github.event.inputs.delay || 40 }}
-        
-      # --- שלב 2: עיצוב README (ירוץ אם בחרת או אם זו ריצה אוטומטית) ---
-      - name: Step 2 - Generate Visuals & README
+      - name: Wait for I/O
+        if: ${{ github.event_name == 'schedule' || (github.event.inputs.run_collect == 'true' && github.event.inputs.run_readme == 'true') }}
+        run: sleep 30
+
+      - name: Step 2 - Generate Pro Charts
         if: ${{ github.event_name == 'schedule' || github.event.inputs.run_readme == 'true' }}
         run: python create_readme.py
-        
-      # --- שלב 3: שמירה ל-GitHub ---
-      - name: Commit and Push Results
+
+      - name: Commit Results
         run: |
-          git config --global user.name 'Analyst Bot'
-          git config --global user.email 'bot@market.ai'
+          git config --global user.name 'Quant Bot'
+          git config --global user.email 'bot@quant.ai'
           git add data/*.json charts/*.png README.md
-          git commit -m "Manual/Auto Market Update" || echo "No changes to commit"
+          git commit -m "Institutional Grade Analysis Update" || echo "No changes"
           git push
