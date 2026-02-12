@@ -2,289 +2,115 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market AI Terminal</title>
-    
-    <!-- Scripts -->
+    <title>QuantIntel Pro Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&family=Orbitron:wght@400;700&display=swap');
-        
-        :root {
-            --primary: #3b82f6;
-            --bg: #0f172a;
-            --card: #1e293b;
-        }
-
-        body { 
-            background-color: var(--bg); 
-            color: #f1f5f9; 
-            font-family: 'Assistant', sans-serif; 
-            transition: all 0.3s ease;
-        }
-
-        .orbitron { font-family: 'Orbitron', sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        
-        /* RTL support classes */
-        [dir="rtl"] .text-left-align { text-align: right; }
-        [dir="ltr"] .text-left-align { text-align: left; }
-
-        .active-tab { border-bottom: 3px solid var(--primary); color: var(--primary); }
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;600;800&family=JetBrains+Mono&display=swap');
+        body { background: #020617; color: #f1f5f9; font-family: 'Assistant', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-
-    <!-- Navbar -->
-    <header class="h-16 glass border-b border-white/10 flex items-center justify-between px-6 sticky top-0 z-50">
+<body class="h-screen flex flex-col overflow-hidden">
+    <header class="h-16 glass border-b border-white/10 flex items-center justify-between px-6 shrink-0">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
-                <i class="fas fa-brain text-white"></i>
-            </div>
-            <h1 class="orbitron font-black text-lg tracking-tighter uppercase">Market<span class="text-blue-500">AI</span></h1>
+            <div class="bg-blue-600 p-2 rounded-lg shadow-lg"><i class="fas fa-brain text-white"></i></div>
+            <h1 class="font-black text-lg tracking-tighter uppercase">QUANT<span class="text-blue-500">INTEL</span></h1>
         </div>
-
-        <div class="flex items-center gap-6">
-            <!-- Language Toggle -->
-            <div class="flex bg-slate-800 rounded-full p-1 border border-white/5">
-                <button onclick="setLang('en')" id="btn-en" class="px-3 py-1 text-[10px] font-bold rounded-full transition-all bg-blue-600 text-white">EN</button>
-                <button onclick="setLang('he')" id="btn-he" class="px-3 py-1 text-[10px] font-bold rounded-full transition-all text-slate-400">עב</button>
+        <div class="flex items-center gap-4">
+            <div class="flex bg-slate-800 rounded-full p-1">
+                <button onclick="setLang('en')" id="btn-en" class="px-3 py-1 text-[10px] font-bold rounded-full bg-blue-600 text-white">EN</button>
+                <button onclick="setLang('he')" id="btn-he" class="px-3 py-1 text-[10px] font-bold rounded-full text-slate-400">עב</button>
             </div>
-            <div id="clock" class="hidden md:block text-xs font-bold mono text-slate-400 border-r border-white/10 pr-6">00:00:00</div>
+            <div id="clock" class="text-xs font-bold mono text-slate-400">00:00:00</div>
         </div>
     </header>
 
-    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
-        
-        <!-- Welcome Section -->
-        <section class="text-center md:text-left-align">
-            <h2 id="ui-hero-title" class="text-3xl md:text-4xl font-black mb-2">Market Intelligence Dashboard</h2>
-            <p id="ui-hero-desc" class="text-slate-400 text-sm max-w-2xl">Real-time AI-powered analysis of the world's leading tech companies.</p>
-        </section>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <!-- Sidebar: Rankings (4 cols) -->
-            <aside class="lg:col-span-4 space-y-4">
-                <div class="flex justify-between items-center px-2">
-                    <h3 id="ui-list-title" class="text-xs font-black uppercase tracking-widest text-blue-500">Top Opportunities</h3>
-                    <span id="update-time" class="text-[9px] text-slate-500 font-mono italic">Syncing...</span>
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-80 bg-slate-900 border-r border-white/5 flex flex-col">
+            <div id="rankings-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+        </aside>
+        <main class="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto">
+            <div class="glass p-6 rounded-3xl flex justify-between items-center">
+                <div>
+                    <h2 id="v-symbol" class="text-4xl font-black italic tracking-tighter">---</h2>
+                    <div id="v-name" class="text-slate-500 text-xs font-bold uppercase">Select Asset</div>
                 </div>
-                <div id="rankings-list" class="space-y-3">
-                    <!-- Data injected here -->
-                </div>
-            </aside>
-
-            <!-- Main Content: Analysis (8 cols) -->
-            <div class="lg:col-span-8 space-y-6">
-                <!-- Stock Info Card -->
-                <div class="glass p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div>
-                        <h2 id="view-symbol" class="text-4xl font-black tracking-tighter">---</h2>
-                        <div id="view-name" class="text-slate-500 font-bold text-sm uppercase">Select an asset</div>
-                    </div>
-                    <div class="h-12 w-px bg-white/5 hidden md:block"></div>
-                    <div class="text-center">
-                        <div id="ui-price-label" class="text-[10px] text-slate-500 uppercase font-bold">Current Price</div>
-                        <div id="view-price" class="text-2xl font-bold mono">---</div>
-                    </div>
-                    <div class="text-center">
-                        <div id="ui-score-label" class="text-[10px] text-slate-500 uppercase font-bold">AI Score</div>
-                        <div id="view-score" class="text-3xl font-black mono text-blue-500">--</div>
-                    </div>
-                </div>
-
-                <!-- Interactive Chart -->
-                <div class="glass rounded-[2rem] p-1 h-[400px] overflow-hidden relative shadow-2xl">
-                    <div id="chart-container" class="w-full h-full"></div>
-                </div>
-
-                <!-- Technical Legend (The "Pleasant" part) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="glass p-6 rounded-3xl">
-                        <h4 id="ui-legend-title" class="font-bold mb-3 flex items-center gap-2">
-                            <i class="fas fa-info-circle text-blue-500"></i> Understanding the Data
-                        </h4>
-                        <div id="ui-legend-content" class="text-xs text-slate-400 space-y-2 leading-relaxed">
-                            <!-- Injected by JS -->
-                        </div>
-                    </div>
-                    <div class="glass p-6 rounded-3xl flex flex-col justify-center border-r-4 border-blue-500">
-                        <div id="ui-signals-label" class="text-[10px] text-slate-500 font-bold uppercase mb-2 tracking-widest">Active Signals</div>
-                        <div id="view-signals" class="flex flex-wrap gap-2">
-                            <!-- Badges -->
-                        </div>
-                    </div>
+                <div class="text-right">
+                    <div id="v-price" class="text-3xl font-bold mono">---</div>
+                    <div id="v-change" class="text-sm font-bold">---</div>
                 </div>
             </div>
-        </div>
-    </main>
-
-    <footer class="p-8 text-center text-[10px] text-slate-600 uppercase tracking-[0.4em]">
-        MarketAI Terminal // Powered by GitHub Actions & Python Intelligence
-    </footer>
+            <div class="glass rounded-3xl p-1 h-[450px] relative overflow-hidden">
+                <div id="chart-container" class="w-full h-full"></div>
+            </div>
+        </main>
+    </div>
 
     <script>
-        // --- Translations ---
         const i18n = {
-            en: {
-                heroTitle: "Market AI Intelligence",
-                heroDesc: "Automated analysis of the top 10 US companies using real-time technical indicators.",
-                listTitle: "Opportunities Ranking",
-                priceLabel: "Current Price",
-                scoreLabel: "AI Score",
-                legendTitle: "📘 Legend & Definitions",
-                legendContent: `
-                    <p><strong>AI Score (0-100):</strong> A weighted average of technical indicators. Above 70 is Bullish, below 30 is Bearish.</p>
-                    <p><strong>RSI:</strong> Momentum indicator. Below 35 suggests 'Oversold' (Buying potential).</p>
-                    <p><strong>SMA 200:</strong> Long-term trend line. Price above this line means the asset is in a long-term uptrend.</p>
-                `,
-                signalsLabel: "Intelligence Signals",
-                dir: "ltr",
-                lang: "en"
-            },
-            he: {
-                heroTitle: "מודיעין שוק מבוסס AI",
-                heroDesc: "ניתוח אוטומטי של 10 החברות הגדולות בארה\"ב באמצעות אינדיקטורים טכניים בזמן אמת.",
-                listTitle: "דירוג הזדמנויות",
-                priceLabel: "מחיר נוכחי",
-                scoreLabel: "ציון AI",
-                legendTitle: "📘 מקרא והסברים",
-                legendContent: `
-                    <p><strong>ציון AI (0-100):</strong> שקלול של כל המדדים הטכניים. מעל 70 נחשב חיובי, מתחת ל-30 שלילי.</p>
-                    <p><strong>מדד RSI:</strong> מודד מומנטום. מתחת ל-35 מעיד על "מכירת יתר" (פוטנציאל לעליות).</p>
-                    <p><strong>ממוצע SMA 200:</strong> קו המגמה ארוך הטווח. מחיר מעל הקו נחשב למגמה חיובית (Bullish).</p>
-                `,
-                signalsLabel: "איתותי מערכת",
-                dir: "rtl",
-                lang: "he"
-            }
+            en: { dir: "ltr", lang: "en" },
+            he: { dir: "rtl", lang: "he" }
         };
+        let currentLang = 'en', chart, candleSeries, currentRankings = [];
 
-        let currentLang = 'en';
-        let chart, candleSeries, currentRankings = [];
-
-        // --- Core Functions ---
         async function init() {
-            try {
-                const res = await fetch('data/market_rankings.json?v=' + Date.now());
-                currentRankings = await res.json();
-                
-                renderWatchlist(currentRankings);
-                if(currentRankings.length > 0) loadStockView(currentRankings[0]);
-                
-                document.getElementById('update-time').innerText = currentRankings[0].updated;
-            } catch (e) {
-                console.error("Data loading failed.");
-            }
-            updateClock();
-            setInterval(updateClock, 1000);
+            const res = await fetch('data/market_rankings.json?v=' + Date.now());
+            currentRankings = await res.json();
+            renderWatchlist();
+            if(currentRankings.length) loadStock(currentRankings[0]);
+            setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString(), 1000);
         }
 
         function setLang(lang) {
             currentLang = lang;
-            const data = i18n[lang];
-            
-            document.documentElement.dir = data.dir;
-            document.documentElement.lang = data.lang;
-
-            // Update UI Elements
-            document.getElementById('ui-hero-title').innerText = data.heroTitle;
-            document.getElementById('ui-hero-desc').innerText = data.heroDesc;
-            document.getElementById('ui-list-title').innerText = data.listTitle;
-            document.getElementById('ui-price-label').innerText = data.priceLabel;
-            document.getElementById('ui-score-label').innerText = data.scoreLabel;
-            document.getElementById('ui-legend-title').innerHTML = data.legendTitle;
-            document.getElementById('ui-legend-content').innerHTML = data.legendContent;
-            document.getElementById('ui-signals-label').innerText = data.signalsLabel;
-
-            // Toggle Button Styles
+            document.documentElement.dir = i18n[lang].dir;
             document.getElementById('btn-en').className = lang === 'en' ? "px-3 py-1 text-[10px] font-bold rounded-full bg-blue-600 text-white" : "px-3 py-1 text-[10px] font-bold rounded-full text-slate-400";
             document.getElementById('btn-he').className = lang === 'he' ? "px-3 py-1 text-[10px] font-bold rounded-full bg-blue-600 text-white" : "px-3 py-1 text-[10px] font-bold rounded-full text-slate-400";
-
-            renderWatchlist(currentRankings);
+            renderWatchlist();
         }
 
-        function renderWatchlist(data) {
-            const container = document.getElementById('rankings-list');
-            container.innerHTML = data.map((stock) => {
-                const isPos = stock.change >= 0;
-                const scoreColor = stock.score >= 70 ? 'text-emerald-400 border-emerald-400/20' : 
-                                   (stock.score <= 35 ? 'text-rose-400 border-rose-400/20' : 'text-amber-400 border-amber-400/20');
-                
-                return `
-                <div onclick="handleRowClick(this, '${stock.symbol}')" 
-                    class="p-4 glass rounded-2xl flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition border border-transparent">
-                    <div>
-                        <div class="font-black text-white text-lg">${stock.symbol}</div>
-                        <div class="text-[10px] text-slate-500 font-bold uppercase">${stock.name}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-sm font-bold mono ${scoreColor} border px-2 py-0.5 rounded-lg">${stock.score}</div>
-                        <div class="text-[10px] font-bold mt-1 ${isPos ? 'text-emerald-500' : 'text-rose-500'}">
-                            ${isPos ? '▲' : '▼'} ${Math.abs(stock.change).toFixed(2)}%
-                        </div>
-                    </div>
+        function renderWatchlist() {
+            const list = document.getElementById('rankings-list');
+            list.innerHTML = currentRankings.map(s => `
+                <div onclick="loadStockByName('${s.symbol}')" class="p-4 glass rounded-2xl flex justify-between items-center cursor-pointer hover:bg-white/5 transition">
+                    <div><b class="text-white">${s.symbol}</b><div class="text-[9px] text-slate-500 uppercase">${s.name}</div></div>
+                    <div class="text-right"><div class="text-xs font-bold mono">${s.score}</div><div class="text-[9px] ${s.change >= 0 ? 'text-emerald-500' : 'text-rose-500'} font-bold">${s.change.toFixed(2)}%</div></div>
                 </div>
-                `;
-            }).join('');
+            `).join('');
         }
 
-        async function loadStockView(stock) {
-            document.getElementById('view-symbol').innerText = stock.symbol;
-            document.getElementById('view-name').innerText = stock.name;
-            document.getElementById('view-price').innerText = `$${stock.price.toFixed(2)}`;
-            document.getElementById('view-score').innerText = stock.score;
+        async function loadStockByName(sym) {
+            const s = currentRankings.find(x => x.symbol === sym);
+            loadStock(s);
+        }
 
-            // Signals
-            document.getElementById('view-signals').innerHTML = stock.signals.map(s => 
-                `<span class="bg-blue-600/20 text-blue-400 text-[10px] px-2 py-1 rounded-lg border border-blue-500/20 font-bold">${s}</span>`
-            ).join('');
+        async function loadStock(s) {
+            document.getElementById('v-symbol').innerText = s.symbol;
+            document.getElementById('v-name').innerText = s.name;
+            document.getElementById('v-price').innerText = `$${s.price.toFixed(2)}`;
+            document.getElementById('v-change').innerText = `${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}%`;
+            document.getElementById('v-change').className = `text-sm font-bold ${s.change >= 0 ? 'text-emerald-500' : 'text-rose-500'}`;
 
-            // Load Chart Data
-            const res = await fetch(`data/${stock.symbol.toLowerCase()}_daily.json?v=` + Date.now());
+            const res = await fetch(`data/${s.symbol.toLowerCase()}_daily.json?v=` + Date.now());
             const detail = await res.json();
             renderChart(detail.history);
         }
 
         function renderChart(data) {
-            const container = document.getElementById('chart-container');
-            container.innerHTML = '';
-            
-            chart = LightweightCharts.createChart(container, {
+            document.getElementById('chart-container').innerHTML = '';
+            chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
                 layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#64748b' },
-                grid: { vertLines: { color: 'rgba(255,255,255,0.02)' }, horzLines: { color: 'rgba(255,255,255,0.02)' } },
-                timeScale: { borderColor: 'rgba(255,255,255,0.1)' },
+                grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+                timeScale: { borderColor: '#1e293b' },
             });
-
-            candleSeries = chart.addCandlestickSeries({
-                upColor: '#10b981', downColor: '#f43f5e', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#f43f5e'
-            });
-
-            candleSeries.setData(data.map(d => ({
-                time: d.Date.split(' ')[0], open: d.Open, high: d.High, low: d.Low, close: d.Close
-            })));
-
-            const smaLine = chart.addLineSeries({ color: '#facc15', lineWidth: 1, priceLineVisible: false });
-            smaLine.setData(data.filter(d => d.SMA200 > 0).map(d => ({ time: d.Date.split(' ')[0], value: d.SMA200 })));
-
+            candleSeries = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#f43f5e', borderVisible: false });
+            candleSeries.setData(data.map(d => ({ time: d.Date.split(' ')[0], open: d.Open, high: d.High, low: d.Low, close: d.Close })));
             chart.timeScale().fitContent();
         }
 
-        function handleRowClick(el, symbol) {
-            const stock = currentRankings.find(s => s.symbol === symbol);
-            loadStockView(stock);
-        }
-
-        function updateClock() {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-        }
-
-        window.onload = init;
-        window.onresize = () => chart && chart.resize(container.clientWidth, container.clientHeight);
+        init();
     </script>
 </body>
 </html>
