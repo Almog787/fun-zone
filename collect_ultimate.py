@@ -19,23 +19,17 @@ class PandasEncoder(json.JSONEncoder):
         return super(PandasEncoder, self).default(obj)
 
 def calculate_technical_analysis(df):
-    # RSI
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / loss
     df['RSI'] = 100 - (100 / (1 + rs))
-    
-    # SMAs
     df['SMA50'] = df['Close'].rolling(window=50).mean()
     df['SMA200'] = df['Close'].rolling(window=200).mean()
-    
-    # Bollinger Bands (Volatilty)
     df['STD'] = df['Close'].rolling(window=20).std()
     df['BB_Upper'] = df['Close'].rolling(window=20).mean() + (df['STD'] * 2)
     df['BB_Lower'] = df['Close'].rolling(window=20).mean() - (df['STD'] * 2)
     
-    # ATR (Volatility)
     high_low = df['High'] - df['Low']
     high_close = np.abs(df['High'] - df['Close'].shift())
     low_close = np.abs(df['Low'] - df['Close'].shift())
@@ -46,45 +40,60 @@ def calculate_technical_analysis(df):
     return df.fillna(0)
 
 def analyze_stock_score(row):
-    score = 50 # ציון התחלתי ניטרלי
+    score = 50
     signals = []
 
-    # 1. ניתוח מגמה (Trend)
     if row['Close'] > row['SMA200']:
         score += 20
-        signals.append("Uptrend (Above SMA200)")
+        signals.append("📈 Uptrend")
     else:
         score -= 20
-        signals.append("Downtrend (Below SMA200)")
+        signals.append("📉 Downtrend")
 
-    # 2. חציית ממוצעים (Golden Cross)
-    if row['SMA50'] > row['SMA200']:
-        score += 10
+    if row['SMA50'] > row['SMA200']: score += 10
     
-    # 3. מומנטום (RSI)
     if row['RSI'] < 30:
         score += 15
-        signals.append("Oversold (RSI < 30)")
+        signals.append("🟢 Oversold")
     elif row['RSI'] > 70:
         score -= 15
-        signals.append("Overbought (RSI > 70)")
+        signals.append("🔴 Overbought")
 
-    # 4. ווליום חריג (Volume Spike)
-    # נניח שאנחנו בודקים אם הווליום הנוכחי גדול ב-50% מהממוצע (לא מחושב כאן במדויק בגרסה זו, אבל הלוגיקה קיימת)
-    
-    # 5. רצועות בולינגר
     if row['Close'] < row['BB_Lower']:
         score += 10
-        signals.append("Price below Bollinger (Dip Buy?)")
+        signals.append("🛒 Dip Buy Zone")
     
-    # נרמול הציון בין 0 ל-100
-    score = max(0, min(100, score))
-    
-    return score, signals
+    return max(0, min(100, score)), signals
 
 def save_json(data, filename):
     with open(os.path.join(DATA_DIR, filename), 'w') as f:
         json.dump(data, f, cls=PandasEncoder, indent=0)
+
+# --- פונקציה חדשה ליצירת README ---
+def generate_readme(rankings):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
+    
+    md = f"""# 📊 Market AI Radar
+**Automated Financial Intelligence System**
+\n> 🔄 **Last Updated:** {now}
+\n## 🏆 Top Opportunities (Live Analysis)
+| Rank | Ticker | Price | Change | AI Score | Signal |
+| :--: | :----: | :---: | :----: | :------: | :----- |
+"""
+    
+    for i, r in enumerate(rankings):
+        # עיצוב אימוג'ים לפי נתונים
+        trend = "🟢" if r['change'] > 0 else "🔴"
+        score_icon = "🚀" if r['score'] >= 80 else ("⚠️" if r['score'] <= 30 else "⚖️")
+        signals_str = ", ".join(r['signals']) if r['signals'] else "Stable"
+        
+        md += f"| {i+1} | **{r['symbol']}** | ${r['price']:.2f} | {trend} {r['change']:.2f}% | {score_icon} **{r['score']}** | {signals_str} |\n"
+
+    md += "\n\n---\n*This data is generated automatically by GitHub Actions using yfinance & Python analysis.*"
+    
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(md)
+    print("README.md updated successfully.")
 
 def process_market():
     rankings = []
@@ -93,18 +102,12 @@ def process_market():
         print(f"Analyzing {symbol}...")
         try:
             stock = yf.Ticker(symbol)
-            
-            # --- 1. איסוף היסטורי מלא (Daily) ---
             df = stock.history(period="max", interval="1d")
-            
-            # חישוב אינדיקטורים מתקדמים
             df = calculate_technical_analysis(df)
             df.reset_index(inplace=True)
             
-            # שמירת קובץ גרפים
             graph_data = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'SMA200', 'SMA50']].tail(2000).to_dict(orient='records')
             
-            # --- 2. ניתוח ודירוג (על בסיס היום האחרון) ---
             latest = df.iloc[-1]
             score, signals = analyze_stock_score(latest)
             
@@ -121,25 +124,20 @@ def process_market():
                 "updated": datetime.now().strftime("%Y-%m-%d %H:%M")
             }
 
-            # שמירת קובץ מניה בודד
             save_json({"meta": meta, "history": graph_data}, f"{symbol}_daily.json")
-            
-            # הוספה לרשימת הדירוג הכללית
             rankings.append(meta)
-            
-            time.sleep(1) # מניעת חסימה
+            time.sleep(1)
 
         except Exception as e:
             print(f"Error analyzing {symbol}: {e}")
 
-    # שמירת קובץ הדירוגים הראשי
-    # מיון לפי ציון (מהגבוה לנמוך)
     rankings.sort(key=lambda x: x['score'], reverse=True)
     
     with open(os.path.join(DATA_DIR, "market_rankings.json"), 'w') as f:
         json.dump(rankings, f, cls=PandasEncoder, indent=2)
-    
-    print("Market Analysis Complete. Rankings generated.")
+        
+    # קריאה לפונקציה שמעדכנת את ה-README
+    generate_readme(rankings)
 
 if __name__ == "__main__":
     process_market()
